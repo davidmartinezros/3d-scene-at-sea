@@ -1,5 +1,6 @@
 # editing-3d-mesh-terrain
-Edit a 3d mesh terrain with the browser. You could move, rotate and make zoom tactil with your mobile or tablet and with your computer cursor.
+3D Scene done with THREE.js showing the sea with some interactive sceje objects. It could be use like a Angular web background.
+You could move, rotate and make zoom tactil with your mobile or tablet and with your computer cursor.
 
 ### Tools
 Angular 4 (JS + TypeScript), Three.js
@@ -14,7 +15,7 @@ npm install
 ng serve
 
 ## Latest version
-https://github.com/davidmartinezros/editing-3d-mesh-terrain
+https://github.com/davidmartinezros/3d-scene-at-sea
 
-## Version published
-https://davidmartinezros.com/Angular2/editing-3d-mesh-terrain/
+## Version published (NOT YET)
+https://davidmartinezros.com/Angular2/3d-scene-at-sea
