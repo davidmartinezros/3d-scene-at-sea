@@ -21,13 +21,7 @@
       "styles": [
         "styles.css"
       ],
-      "scripts": [
-        "assets/js/three.js",
-        "assets/js/ocean.js",
-        "assets/js/Water.js",
-        "assets/js/TDSLoader.js",
-        "assets/js/OBJLoader.js"
-      ],
+      "scripts": [  ],
       "environmentSource": "environments/environment.ts",
       "environments": {
         "dev": "environments/environment.ts",

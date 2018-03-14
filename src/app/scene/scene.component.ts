@@ -1,26 +1,19 @@
-import { AfterViewInit, Component, ElementRef, Input, ViewChild, HostListener } from '@angular/core';
-import "three/examples/js/controls/OrbitControls";
-import "three/examples/js/loaders/ColladaLoader";
+import { AfterViewInit, OnInit, Component, ElementRef, Input, ViewChild, HostListener } from '@angular/core';
 import * as dat from './js/dat.gui.min';
 import * as Stats from './js/stats.min';
-//import * as THREE from './js/three';
-
-declare var THREE;
-
-declare var Ocean;
-
-declare var Water;
-
-declare var TDSLoader;
-
-declare var OBJLoader;
+import * as THREE from 'three';
+import "./js/EnableThreeExamples";
+import "three/examples/js/objects/Water";
+import "three/examples/js/controls/OrbitControls";
+import "three/examples/js/loaders/TDSLoader";
+import "three/examples/js/loaders/OBJLoader";
 
 @Component({
     selector: 'scene',
     templateUrl: './scene.component.html',
     styleUrls: ['./scene.component.css']
 })
-export class SceneComponent implements AfterViewInit {
+export class SceneComponent implements OnInit, AfterViewInit {
 
     private renderer: THREE.WebGLRenderer;
     private camera: THREE.PerspectiveCamera;
@@ -45,7 +38,8 @@ export class SceneComponent implements AfterViewInit {
 
     constructor() {
         this.render = this.render.bind(this);
-        this.renderControls = this.renderControls.bind(this);
+        this.animate = this.animate.bind(this);
+        //this.renderControls = this.renderControls.bind(this);
         //this.onModelLoadingCompleted = this.onModelLoadingCompleted.bind(this);
     }
 
@@ -203,12 +197,13 @@ export class SceneComponent implements AfterViewInit {
         */
        this.render();
     }
-
+    /*
     animate() {
         requestAnimationFrame( this.animate );
         this.renderer.render( this.scene, this.camera );
     }
-
+*/
+/*
     makeModifications(component: SceneComponent) {
         let vertices = component.geometry.vertices;
         //console.log(vertices.length);
@@ -220,20 +215,21 @@ export class SceneComponent implements AfterViewInit {
 
         component.geometry.computeVertexNormals();
     }
-
+*/
+/*
     public render() {
         console.log("render");
 
         var time = performance.now() * 0.001;
 
-        //this.water.material.uniforms.time.value += 1.0 / 60.0;
-        //this.water.material.uniforms.size.value = this.parameters.size;
-        //this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
-        //this.water.material.uniforms.alpha.value = this.parameters.alpha;
+        this.water.material.uniforms.time.value += 1.0 / 60.0;
+        this.water.material.uniforms.size.value = this.parameters.size;
+        this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
+        this.water.material.uniforms.alpha.value = this.parameters.alpha;
 
         //this.makeModifications(this);
 
-        this.updateOcean();
+        //this.updateOcean();
 
         this.renderer.render(this.scene, this.camera);
 
@@ -244,7 +240,8 @@ export class SceneComponent implements AfterViewInit {
         }, 300);
 
     }
-
+    */
+/*
     lastTime = (new Date()).getTime();
 
     public updateOcean() {
@@ -285,7 +282,7 @@ export class SceneComponent implements AfterViewInit {
         var gres = res / 2;
         var origx = -gsize / 2;
         var origz = -gsize / 2;
-        this.ms_Ocean = new Ocean(this.renderer, this.camera, this.scene,
+        this.ms_Ocean = new THREE.Ocean(this.renderer, this.camera, this.scene,
             {
                 USE_HALF_FLOAT : hash === 'half-float',
                 INITIAL_SIZE : 256.0,
@@ -350,7 +347,8 @@ export class SceneComponent implements AfterViewInit {
                 this.object.changed = true;
             });
     }
-
+*/
+/*
     renderControls() {
         this.renderer.render( this.scene, this.camera );
     }
@@ -362,7 +360,7 @@ export class SceneComponent implements AfterViewInit {
         this.controls.addEventListener('change', this.renderControls);
 
     }
-
+*/
     /* EVENTS */
 
     public onMouseMove(event: MouseEvent) {
@@ -390,7 +388,7 @@ export class SceneComponent implements AfterViewInit {
             console.log(i.object); // do what you want to do with object
             i.object.position.y = i.object.position.y + 1;
         });
-        this.renderControls();
+        this.render();
     }
 
     private findAllObjects(pred: THREE.Object3D[], parent: THREE.Object3D) {
@@ -417,7 +415,7 @@ export class SceneComponent implements AfterViewInit {
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-        this.renderControls();
+        this.render();
     }
 
     @HostListener('document:keypress', ['$event'])
@@ -434,21 +432,20 @@ export class SceneComponent implements AfterViewInit {
         distortionScale: 3.7,
         alpha: 1.0
     };
-    /* LIFECYCLE */
     ngAfterViewInit() {
-        //this.createScene();
-        //funciona
-        ////this.createMesh();
-        ////no es veu
-        ////this.createCube();
-        //this.createLight();
-        //this.createCamera();
-        //this.startRendering();
-        //this.addControls();
-        ////no es veuen be els colors, pero el mar ja es veu ueeeee!!!
-        //this.createOcean();
-        ////this.animate();
-
+        this.animate();
+    }
+    /* LIFECYCLE */
+    ngOnInit() {
+        //
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: this.canvas,
+            antialias: true
+        });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.renderer.setSize( window.innerWidth, window.innerHeight );
+        this.renderer.shadowMap.enabled = true;
+        //
         this.scene = new THREE.Scene();
         this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.001 );
         //
@@ -466,40 +463,21 @@ export class SceneComponent implements AfterViewInit {
         this.scene.add( this.light );
         var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
         this.scene.add( ambientLight );
-
-        this.renderer = new THREE.WebGLRenderer({
-            canvas: this.canvas,
-            antialias: true,
-        });
-        this.renderer.setPixelRatio(devicePixelRatio);
-        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        this.renderer.setClearColor(0x000000, 1);
-        this.renderer.autoClear = true;
-        /*
-        let component: SceneComponent = this;
-
-        (function render() {
-            component.render();
-        }());
-        */
-
+        //
         this.setWater();
-        
+
         this.setSkybox();
 
         this.loadDolphin1();
 
         this.loadDolphin2();
-        
-        this.loadDolphin3();
-        
-        this.loadBird();
-        
-        this.loadPenguin();
 
+        this.loadDolphin3();
+
+        this.loadBird();
+
+        this.loadPenguin();
+        //
         this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
         this.controls.maxPolarAngle = Math.PI * 0.495;
         this.controls.target.set( 0, 10, 0 );
@@ -509,7 +487,7 @@ export class SceneComponent implements AfterViewInit {
         this.camera.lookAt( this.controls.target );
         //
         //this.stats = new Stats();
-        //container.appendChild( stats.dom );
+        //container.appendChild( this.stats.dom );
         //
         var gui = new dat.GUI();
         gui.add( this.parameters, 'distortionScale', 0, 8, 0.1 );
@@ -517,192 +495,205 @@ export class SceneComponent implements AfterViewInit {
         gui.add( this.parameters, 'alpha', 0.9, 1, .001 );
         //
         //window.addEventListener( 'resize', onWindowResize, false );
-
-        this.render();
     }
 
-            loadDolphin1() {
-                var loaderTextures = new THREE.TextureLoader();
-                var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-                var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-                var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
-                var loader3ds = new TDSLoader( );
-                let parent = this;
-                //loader.setPath( 'asssets/dolphin/' );
-                loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
-                    object.traverse( function ( child ) {
-                        if ( child instanceof THREE.Mesh ) {
-                            child.material = materialDolphin;
-                        }
-                    } );
+    loadDolphin1() {
+        var loaderTextures = new THREE.TextureLoader();
+        var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader();
+        let parent = this;
+        //loader.setPath( 'asssets/dolphin/' );
+        loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialDolphin;
+                }
+            } );
 
-                    //object.position.x = - 60;
-                    //object.position.y = 60;
-                    let obj = object;
-                    obj.rotation.x = - Math.PI / 2;
-                    obj.rotation.z = - Math.PI / 2;
-                    obj.scale.x = 16;
-                    obj.scale.y = 16;
-                    obj.scale.z = 16;
+            //object.position.x = - 60;
+            //object.position.y = 60;
+            let obj = object;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 16;
+            obj.scale.y = 16;
+            obj.scale.z = 16;
 
-                    parent.scene.add( obj );
-                });
+            parent.scene.add( obj );
+        });
 
+    }
+    loadDolphin2() {
+        var loaderTextures = new THREE.TextureLoader();
+        var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader();
+        let parent = this;
+        loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialDolphin;
+                }
+            } );
+
+            let obj = object;
+            obj.position.x = 10;
+            obj.position.y = 10;
+            obj.position.z = 15;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 16;
+            obj.scale.y = 16;
+            obj.scale.z = 16;
+
+            parent.scene.add( obj );
+        });
+    }
+    loadDolphin3() {
+        var loaderTextures = new THREE.TextureLoader();
+        var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader();
+        let parent = this;
+        loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialDolphin;
+                }
+            } );
+
+            let obj = object;
+            obj.position.x = -10;
+            obj.position.z = 30;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 16;
+            obj.scale.y = 16;
+            obj.scale.z = 16;
+
+            parent.scene.add( obj );
+        });
+    }
+    loadBird() {
+        var loaderTextures = new THREE.TextureLoader();
+        var normalBird = loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureBird = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, normalMap: normalBird, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader();
+        let parent = this;  
+        loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialBird;
+                }
+            } );
+
+            let obj = object;
+            obj.position.x = 50;
+            obj.position.y = 50;
+            obj.position.z = -50;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 1;
+            obj.scale.y = 1;
+            obj.scale.z = 1;
+
+            parent.scene.add( obj );
+        });
+    }
+    loadPenguin() {
+        var loaderTextures = new THREE.TextureLoader();
+        var normalPenguin = loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
+        var texturePenguin = loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
+        var loaderObj = new THREE.OBJLoader();
+        var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, normalMap: normalPenguin, needsUpdate: true});
+        let parent = this;              
+        loaderObj.load( 'assets/penguin/Penguin.obj', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialPenguin;
+                }
+            } );
+            //object.position.y = - 95;
+            //var scale = 0.1;
+            //object.scale.set(scale, scale, scale);
+
+            let obj = object;
+
+            obj.position.x = - 60;
+            obj.position.y = 60;
+            obj.rotation.x = 20* Math.PI / 180;
+            obj.rotation.z = 20* Math.PI / 180;
+            obj.scale.x = 0.001;
+            obj.scale.y = 0.001;
+            obj.scale.z = 0.001;
+            
+            parent.scene.add( obj );
+        });
+    }
+    setWater() {
+        var waterGeometry = new THREE.PlaneBufferGeometry( this.parameters.oceanSide * 5, this.parameters.oceanSide * 5 );
+        this.water = new THREE.Water(
+            waterGeometry,
+            {
+                textureWidth: 512,
+                textureHeight: 512,
+                waterNormals: new THREE.TextureLoader().load( 'assets/textures/waternormals.jpg', function ( texture ) {
+                    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                }),
+                alpha: this.parameters.alpha,
+                sunDirection: this.light.position.clone().normalize(),
+                sunColor: 0xffffff,
+                waterColor: 0x001e0f,
+                distortionScale: this.parameters.distortionScale,
+                fog: this.scene.fog !== undefined
             }
-			loadDolphin2() {
-				var loaderTextures = new THREE.TextureLoader();
-				var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-				var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-				var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
-                var loader3ds = new TDSLoader( );
-                let parent = this;
-				loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
-					object.traverse( function ( child ) {
-						if ( child instanceof THREE.Mesh ) {
-							child.material = materialDolphin;
-						}
-					} );
+        );
+        this.water.rotation.x = - Math.PI / 2;
+        this.water.receiveShadow = true;
+        this.scene.add( this.water );
+    }
+    setSkybox() {
+        var cubeTextureLoader = new THREE.CubeTextureLoader();
+        cubeTextureLoader.setPath( 'assets/textures/cube/skyboxsun25deg/' );
+        let cubeMap = cubeTextureLoader.load( [
+            'px.jpg', 'nx.jpg',
+            'py.jpg', 'ny.jpg',
+            'pz.jpg', 'nz.jpg',
+        ] );
+        var cubeShader = THREE.ShaderLib[ 'cube' ];
+        cubeShader.uniforms[ 'tCube' ].value = cubeMap;
+        var skyBoxMaterial = new THREE.ShaderMaterial( {
+            fragmentShader: cubeShader.fragmentShader,
+            vertexShader: cubeShader.vertexShader,
+            uniforms: cubeShader.uniforms,
+            side: THREE.BackSide
+        } );
+        var skyBoxGeometry = new THREE.BoxBufferGeometry(
+            this.parameters.oceanSide * 5 + 100,
+            this.parameters.oceanSide * 5 + 100,
+            this.parameters.oceanSide * 5 + 100 );
+        var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+        this.scene.add( skyBox );
+    }
 
-					let obj = object;
-					obj.position.x = 10;
-					obj.position.y = 10;
-					obj.position.z = 15;
-                    obj.rotation.x = - Math.PI / 2;
-                    obj.rotation.z = - Math.PI / 2;
-                    obj.scale.x = 16;
-                    obj.scale.y = 16;
-                    obj.scale.z = 16;
-
-					parent.scene.add( obj );
-				});
-			}
-			loadDolphin3() {
-				var loaderTextures = new THREE.TextureLoader();
-				var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-				var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-				var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
-                var loader3ds = new TDSLoader( );
-                let parent = this;
-				loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
-					object.traverse( function ( child ) {
-						if ( child instanceof THREE.Mesh ) {
-							child.material = materialDolphin;
-						}
-					} );
-
-					let obj = object;
-					obj.position.x = -10;
-					obj.position.z = 30;
-                    obj.rotation.x = - Math.PI / 2;
-                    obj.rotation.z = - Math.PI / 2;
-                    obj.scale.x = 16;
-                    obj.scale.y = 16;
-                    obj.scale.z = 16;
-
-					parent.scene.add( obj );
-				});
-			}
-			loadBird() {
-				var loaderTextures = new THREE.TextureLoader();
-				var normalBird = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-				var textureBird = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-				var materialBird = new THREE.MeshLambertMaterial({map: textureBird, normalMap: normalBird, needsUpdate: true});
-                var loader3ds = new TDSLoader( );
-                let parent = this;  
-				loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
-					object.traverse( function ( child ) {
-						if ( child instanceof THREE.Mesh ) {
-							child.material = materialBird;
-						}
-					} );
-
-					let obj = object;
-					obj.position.x = 50;
-					obj.position.y = 50;
-					obj.position.z = -50;
-                    obj.rotation.x = - Math.PI / 2;
-                    obj.rotation.z = - Math.PI / 2;
-                    obj.scale.x = 1;
-                    obj.scale.y = 1;
-                    obj.scale.z = 1;
-
-					parent.scene.add( obj );
-				});
-			}
-			loadPenguin() {
-				var loaderTextures = new THREE.TextureLoader();
-				var normalPenguin = loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
-				var texturePenguin = loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
-				var loaderObj = new OBJLoader();
-                var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, normalMap: normalPenguin, needsUpdate: true});
-                let parent = this;              
-				loaderObj.load( 'assets/penguin/Penguin.obj', function ( object ) {
-					object.traverse( function ( child ) {
-						if ( child instanceof THREE.Mesh ) {
-							child.material = materialPenguin;
-						}
-					} );
-					//object.position.y = - 95;
-					//var scale = 0.1;
-					//object.scale.set(scale, scale, scale);
-
-					let obj = object;
-
-					obj.position.x = - 60;
-					obj.position.y = 60;
-                    obj.rotation.x = 20* Math.PI / 180;
-                    obj.rotation.z = 20* Math.PI / 180;
-                    obj.scale.x = 0.001;
-                    obj.scale.y = 0.001;
-                    obj.scale.z = 0.001;
-					
-					parent.scene.add( obj );
-				});
-			}
-			setWater() {
-				var waterGeometry = new THREE.PlaneBufferGeometry( this.parameters.oceanSide * 5, this.parameters.oceanSide * 5 );
-				this.water = new Water(
-					waterGeometry,
-					{
-						textureWidth: 512,
-						textureHeight: 512,
-						waterNormals: new THREE.TextureLoader().load( 'assets/textures/waternormals.jpg', function ( texture ) {
-							texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-						}),
-						alpha: this.parameters.alpha,
-						sunDirection: this.light.position.clone().normalize(),
-						sunColor: 0xffffff,
-						waterColor: 0x001e0f,
-						distortionScale: this.parameters.distortionScale,
-						fog: this.scene.fog !== undefined
-					}
-				);
-				this.water.rotation.x = - Math.PI / 2;
-				this.water.receiveShadow = true;
-				this.scene.add( this.water );
-			}
-			setSkybox() {
-				var cubeTextureLoader = new THREE.CubeTextureLoader();
-				cubeTextureLoader.setPath( 'assets/textures/cube/skyboxsun25deg/' );
-				let cubeMap = cubeTextureLoader.load( [
-					'px.jpg', 'nx.jpg',
-					'py.jpg', 'ny.jpg',
-					'pz.jpg', 'nz.jpg',
-				] );
-				var cubeShader = THREE.ShaderLib[ 'cube' ];
-				cubeShader.uniforms[ 'tCube' ].value = cubeMap;
-				var skyBoxMaterial = new THREE.ShaderMaterial( {
-					fragmentShader: cubeShader.fragmentShader,
-					vertexShader: cubeShader.vertexShader,
-					uniforms: cubeShader.uniforms,
-					side: THREE.BackSide
-				} );
-				var skyBoxGeometry = new THREE.BoxBufferGeometry(
-					this.parameters.oceanSide * 5 + 100,
-					this.parameters.oceanSide * 5 + 100,
-					this.parameters.oceanSide * 5 + 100 );
-				var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-				this.scene.add( skyBox );
-			}
+    animate() {
+        console.log("render");
+        requestAnimationFrame( this.animate );
+        this.render();
+        //stats.update();
+    }
+    render() {
+        var time = performance.now() * 0.001;
+        this.water.material.uniforms.time.value += 1.0 / 60.0;
+        this.water.material.uniforms.size.value = this.parameters.size;
+        this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
+        this.water.material.uniforms.alpha.value = this.parameters.alpha;
+        this.renderer.render( this.scene, this.camera );
+    }
 
 }
