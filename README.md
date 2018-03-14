@@ -1,4 +1,4 @@
-# editing-3d-mesh-terrain
+# 3d-scene-at-sea
 3D Scene done with THREE.js showing the sea with some interactive sceje objects. It could be use like a Angular web background.
 You could move, rotate and make zoom tactil with your mobile or tablet and with your computer cursor.
 
