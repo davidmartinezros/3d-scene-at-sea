@@ -386,7 +386,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         console.log(intersects.length + " intersected objects found")
         intersects.forEach((i) => {
             console.log(i.object); // do what you want to do with object
-            i.object.position.y = i.object.position.y + 1;
+            //i.object.position.y = i.object.position.y + 1;
         });
         this.render();
     }
@@ -477,6 +477,10 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
         this.setSkybox();
 
+        this.loadIsland();
+
+        this.loadPalmTree();
+
         this.loadDolphin1();
 
         this.loadDolphin2();
@@ -516,10 +520,20 @@ export class SceneComponent implements OnInit, AfterViewInit {
         console.log(xhr);
     };
 
+    loadIsland() {
+        var geometry = new THREE.CylinderGeometry( 50, 50, 10, 32 );
+        var textureSand = this.loaderTextures.load('assets/island/sand-texture.jpg');
+        var materialSand = new THREE.MeshLambertMaterial({map: textureSand, needsUpdate: true});
+        var cylinder = new THREE.Mesh( geometry, materialSand );
+        cylinder.position.x = - 150;
+        cylinder.position.z = - 110;
+        cylinder.position.y = - 3;
+        this.scene.add( cylinder );
+    }
+
     loadDolphin1() {
-        var normalDolphin = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture.jpg');
+        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
@@ -545,9 +559,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     }
     loadDolphin2() {
-        var normalDolphin = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture.jpg');
+        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
@@ -571,9 +584,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
         }, this.onProgress, this.onError );
     }
     loadDolphin3() {
-        var normalDolphin = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture.jpg');
+        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
@@ -596,9 +608,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
         }, this.onProgress, this.onError );
     }
     loadBird() {
-        var normalBird = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureBird = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
-        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, normalMap: normalBird, needsUpdate: true});
+        var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
+        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;  
         loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
@@ -621,6 +632,31 @@ export class SceneComponent implements OnInit, AfterViewInit {
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+    loadPalmTree() {
+        var texturePalmTree = this.loaderTextures.load( 'assets/palm-tree/Bottom_T.jpg' );
+        var loaderObj = new THREE.OBJLoader( this.manager );
+        var materialPalmTree = new THREE.MeshLambertMaterial({map: texturePalmTree, needsUpdate: true});
+        let parent = this;              
+        loaderObj.load( 'assets/palm-tree/palm_tree.obj', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    //child.material = materialPalmTree;
+                }
+            } );
+            
+            let obj = object;
+
+            obj.position.x = - 150;
+            obj.position.z = - 135;
+            obj.position.y = 3;
+            //obj.rotation.y = 90* Math.PI / 180;
+            obj.scale.x = 4.0;
+            obj.scale.y = 4.0;
+            obj.scale.z = 4.0;
+            
+            parent.scene.add( obj );
+        }, this.onProgress, this.onError );
+    }
     loadPenguin() {
         var normalPenguin = this.loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
         var texturePenguin = this.loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
@@ -636,9 +672,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
             
             let obj = object;
 
-            obj.position.x = - 120;
-            obj.position.y = 10;
-            obj.position.z = - 90;
+            obj.position.x = - 150;
+            obj.position.z = - 110;
+            obj.position.y = 2;
             obj.rotation.y = 90* Math.PI / 180;
             obj.scale.x = 0.3;
             obj.scale.y = 0.3;

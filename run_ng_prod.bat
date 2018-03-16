@@ -1,1 +1,1 @@
-ng build --base-href https://davidmartinezros.com/Angular2/editing-3d-mesh-terrain/ --prod --env=prod
+ng build --base-href https://davidmartinezros.com/Angular2/3d-scene-at-sea/ --prod --env=prod
