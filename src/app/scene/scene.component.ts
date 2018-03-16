@@ -432,6 +432,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
         distortionScale: 3.7,
         alpha: 1.0
     };
+    manager: THREE.LoadingManager;
+    loaderTextures: THREE.TextureLoader;
+
     ngAfterViewInit() {
         this.animate();
     }
@@ -463,6 +466,12 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.scene.add( this.light );
         var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
         this.scene.add( ambientLight );
+        //
+        this.manager = new THREE.LoadingManager();
+        this.manager.onProgress = function ( item, loaded, total ) {
+            console.log( item, loaded, total );
+        };
+        this.loaderTextures = new THREE.TextureLoader( this.manager );
         //
         this.setWater();
 
@@ -497,12 +506,22 @@ export class SceneComponent implements OnInit, AfterViewInit {
         //window.addEventListener( 'resize', onWindowResize, false );
     }
 
+    onProgress = function ( xhr ) {
+        if ( xhr.lengthComputable ) {
+            var percentComplete = xhr.loaded / xhr.total * 100;
+            console.log( Math.round(percentComplete) + '% downloaded' );
+        }
+    };
+    onError = function ( xhr ) {
+        console.log(xhr);
+    };
+
     loadDolphin1() {
-        var loaderTextures = new THREE.TextureLoader();
-        var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var normalDolphin = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader();
+        
+        var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
         //loader.setPath( 'asssets/dolphin/' );
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
@@ -522,15 +541,14 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.z = 16;
 
             parent.scene.add( obj );
-        });
+        }, this.onProgress, this.onError );
 
     }
     loadDolphin2() {
-        var loaderTextures = new THREE.TextureLoader();
-        var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var normalDolphin = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader();
+        var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
             object.traverse( function ( child ) {
@@ -550,14 +568,13 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.z = 16;
 
             parent.scene.add( obj );
-        });
+        }, this.onProgress, this.onError );
     }
     loadDolphin3() {
-        var loaderTextures = new THREE.TextureLoader();
-        var normalDolphin = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureDolphin = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var normalDolphin = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, normalMap: normalDolphin, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader();
+        var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
             object.traverse( function ( child ) {
@@ -576,14 +593,13 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.z = 16;
 
             parent.scene.add( obj );
-        });
+        }, this.onProgress, this.onError );
     }
     loadBird() {
-        var loaderTextures = new THREE.TextureLoader();
-        var normalBird = loaderTextures.load( 'assets/textures/waternormals.jpg' );
-        var textureBird = loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
+        var normalBird = this.loaderTextures.load( 'assets/textures/waternormals.jpg' );
+        var textureBird = this.loaderTextures.load('assets/dolphin/DOLPHIN.TIF');
         var materialBird = new THREE.MeshLambertMaterial({map: textureBird, normalMap: normalBird, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader();
+        var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;  
         loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
             object.traverse( function ( child ) {
@@ -603,13 +619,12 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.z = 1;
 
             parent.scene.add( obj );
-        });
+        }, this.onProgress, this.onError );
     }
     loadPenguin() {
-        var loaderTextures = new THREE.TextureLoader();
-        var normalPenguin = loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
-        var texturePenguin = loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
-        var loaderObj = new THREE.OBJLoader();
+        var normalPenguin = this.loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
+        var texturePenguin = this.loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
+        var loaderObj = new THREE.OBJLoader( this.manager );
         var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, normalMap: normalPenguin, needsUpdate: true});
         let parent = this;              
         loaderObj.load( 'assets/penguin/Penguin.obj', function ( object ) {
@@ -618,22 +633,19 @@ export class SceneComponent implements OnInit, AfterViewInit {
                     child.material = materialPenguin;
                 }
             } );
-            //object.position.y = - 95;
-            //var scale = 0.1;
-            //object.scale.set(scale, scale, scale);
-
+            
             let obj = object;
 
-            obj.position.x = - 60;
-            obj.position.y = 60;
-            obj.rotation.x = 20* Math.PI / 180;
-            obj.rotation.z = 20* Math.PI / 180;
-            obj.scale.x = 0.001;
-            obj.scale.y = 0.001;
-            obj.scale.z = 0.001;
+            obj.position.x = - 120;
+            obj.position.y = 10;
+            obj.position.z = - 90;
+            obj.rotation.y = 90* Math.PI / 180;
+            obj.scale.x = 0.3;
+            obj.scale.y = 0.3;
+            obj.scale.z = 0.3;
             
             parent.scene.add( obj );
-        });
+        }, this.onProgress, this.onError );
     }
     setWater() {
         var waterGeometry = new THREE.PlaneBufferGeometry( this.parameters.oceanSide * 5, this.parameters.oceanSide * 5 );
