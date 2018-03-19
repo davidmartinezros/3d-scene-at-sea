@@ -7,6 +7,12 @@ import "three/examples/js/objects/Water";
 import "three/examples/js/controls/OrbitControls";
 import "three/examples/js/loaders/TDSLoader";
 import "three/examples/js/loaders/OBJLoader";
+import "three/examples/js/loaders/MTLLoader";
+//import * as ParticleEngine from './js/ParticleEngine';
+
+declare var ParticleEngine:any;
+
+declare var Type:any;
 
 @Component({
     selector: 'scene',
@@ -39,6 +45,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     constructor() {
         this.render = this.render.bind(this);
         this.animate = this.animate.bind(this);
+        this.renderRain = this.renderRain.bind(this);
         //this.renderControls = this.renderControls.bind(this);
         //this.onModelLoadingCompleted = this.onModelLoadingCompleted.bind(this);
     }
@@ -430,10 +437,22 @@ export class SceneComponent implements OnInit, AfterViewInit {
         oceanSide: 2000,
         size: 1.0,
         distortionScale: 3.7,
-        alpha: 1.0
+        alpha: 1.0,
+        sizeRain: 2,
+        transparentRain: true,
+        sizeAttenuationRain: true,
+        opacityRain: 0.6,
+        colorRain: 0xffffff
+
     };
     manager: THREE.LoadingManager;
     loaderTextures: THREE.TextureLoader;
+
+    cloud;
+
+    textureRain;
+
+    engine;
 
     ngAfterViewInit() {
         this.animate();
@@ -479,7 +498,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
         this.loadIsland();
 
-        this.loadPalmTree();
+        //this.loadPalmTree();
+
+        this.loadTree();
 
         this.loadDolphin1();
 
@@ -490,6 +511,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.loadBird();
 
         this.loadPenguin();
+
+        //this.createPointCloud(this.parameters.sizeRain, this.parameters.transparentRain, this.parameters.opacityRain, this.parameters.sizeAttenuationRain, this.parameters.colorRain);
+
         //
         this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
         this.controls.maxPolarAngle = Math.PI * 0.495;
@@ -502,13 +526,75 @@ export class SceneComponent implements OnInit, AfterViewInit {
         //this.stats = new Stats();
         //container.appendChild( this.stats.dom );
         //
+
+
+
+        //rain
+        var settings = {
+            positionStyle    : Type.CUBE,
+            positionBase     : new THREE.Vector3( 0, 0, 0 ),
+            positionSpread   : new THREE.Vector3( 200, 200, 500 ),
+
+            velocityStyle    : Type.CUBE,
+            velocityBase     : new THREE.Vector3( 0, 0, -400 ),
+            velocitySpread   : new THREE.Vector3( 10, 50, 10 ), 
+            accelerationBase : new THREE.Vector3( 0, -10, 0 ),
+            
+            particleTexture : this.loaderTextures.load('assets/textures/raindrop-3.png'),
+
+            sizeBase    : 4.0,
+            sizeSpread  : 2.0,
+            colorBase   : new THREE.Vector3(0.66, 1.0, 0.7), // H,S,L
+            colorSpread : new THREE.Vector3(0.00, 0.0, 0.2),
+            opacityBase : 0.6,
+
+            particlesPerSecond : 3000,
+            particleDeathAge   : 1.0,  
+            emitterDeathAge    : 60
+        };
+   
+        this.engine = new ParticleEngine();
+        this.engine.setValues( settings );
+        this.engine.initialize();
+
+
+
+/*
+
+        this.textureRain = this.loaderTextures.load('assets/textures/raindrop-3.png');
+
+        let parent = this;
+        this.rainControls = new function () {
+            this.sizeRain = 6;
+            this.transparentRain = true;
+            this.opacityRain = 0.6;
+            this.colorRain = 0xffffff;
+            this.sizeAttenuationRain = true;
+            
+            this.redraw = function () {
+                if(parent.scene.getObjectByName("particles1")) {
+                    parent.scene.remove(parent.scene.getObjectByName("particles1"));
+                }
+                parent.createPointCloud("particles1", parent.rainControls.sizeRain, parent.rainControls.transparentRain, parent.rainControls.opacityRain, parent.rainControls.sizeAttenuationRain, parent.rainControls.colorRain);
+            };
+        };
+
+        this.rainControls.redraw();
+*/
         var gui = new dat.GUI();
         gui.add( this.parameters, 'distortionScale', 0, 8, 0.1 );
         gui.add( this.parameters, 'size', 0.1, 10, 0.1 );
         gui.add( this.parameters, 'alpha', 0.9, 1, .001 );
+        //gui.add( this.rainControls, 'sizeRain', 0, 20).onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'transparentRain').onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'opacityRain', 0, 1).onChange(this.rainControls.redraw);;
+        //gui.addColor( this.rainControls, 'colorRain').onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'sizeAttenuationRain').onChange(this.rainControls.redraw);
         //
         //window.addEventListener( 'resize', onWindowResize, false );
     }
+
+    rainControls;
 
     onProgress = function ( xhr ) {
         if ( xhr.lengthComputable ) {
@@ -519,6 +605,45 @@ export class SceneComponent implements OnInit, AfterViewInit {
     onError = function ( xhr ) {
         console.log(xhr);
     };
+
+    createPointCloud(name, size, transparent, opacity, sizeAttenuation, color) {
+        var geom = new THREE.Geometry();
+        
+        var material = new THREE.PointsMaterial({
+            size: size,
+            transparent: transparent,
+            opacity: opacity,
+            map: this.textureRain,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: sizeAttenuation,
+            color: color
+        });
+        /*
+        var material = new THREE.LineDashedMaterial( {
+            color: 0xffffff,
+            linewidth: 1,
+            scale: 1,
+            dashSize: 3,
+            gapSize: 1,
+            lights: true
+        } );
+        */
+        var range = 2000;
+        for (var i = 0; i < 1500; i++) {
+            var particle = new THREE.Vector3(
+                    Math.random() * range - range / 2,
+                    Math.random() * range * 1.5,
+                    Math.random() * range - range / 2);
+            particle.velocityY = 0.1 + Math.random() / 20;
+            particle.velocityX = (Math.random() - 0.5) / 3;
+            geom.vertices.push(particle);
+        }
+        this.cloud = new THREE.Points(geom, material);
+        //this.cloud = new THREE.Line(geom, material);
+        this.cloud.sortParticles = true;
+        this.cloud.name = name;
+        this.scene.add(this.cloud);
+    }
 
     loadIsland() {
         var geometry = new THREE.CylinderGeometry( 50, 50, 10, 32 );
@@ -532,7 +657,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     loadDolphin1() {
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture.jpg');
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         
         var loader3ds = new THREE.TDSLoader( this.manager );
@@ -559,7 +684,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     }
     loadDolphin2() {
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture.jpg');
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
@@ -584,7 +709,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         }, this.onProgress, this.onError );
     }
     loadDolphin3() {
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture.jpg');
+        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
@@ -634,13 +759,13 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
     loadPalmTree() {
         var texturePalmTree = this.loaderTextures.load( 'assets/palm-tree/Bottom_T.jpg' );
-        var loaderObj = new THREE.OBJLoader( this.manager );
         var materialPalmTree = new THREE.MeshLambertMaterial({map: texturePalmTree, needsUpdate: true});
+        var loaderObj = new THREE.OBJLoader( this.manager );
         let parent = this;              
         loaderObj.load( 'assets/palm-tree/palm_tree.obj', function ( object ) {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
-                    //child.material = materialPalmTree;
+                    child.material = materialPalmTree;
                 }
             } );
             
@@ -656,6 +781,27 @@ export class SceneComponent implements OnInit, AfterViewInit {
             
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
+    }
+    loadTree() {
+
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/tree/' );
+        let parent = this;
+        mtlLoader.load( 'Tree.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/tree/' );
+            loaderObj.load( 'Tree.obj', function ( object ) {
+                let obj = object;
+
+                obj.position.x = - 160;
+                obj.position.z = - 145;
+                obj.position.y = 3;
+                
+                parent.scene.add( obj );
+            }, parent.onProgress, parent.onError );
+        });
     }
     loadPenguin() {
         var normalPenguin = this.loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
@@ -741,7 +887,26 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.water.material.uniforms.size.value = this.parameters.size;
         this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
         this.water.material.uniforms.alpha.value = this.parameters.alpha;
+
+        this.engine.update( 0.01 * 0.5 );
+
+        //setTimeout(this.renderRain, 3000);
+
         this.renderer.render( this.scene, this.camera );
+    }
+
+    renderRain() {
+        if(this.cloud) {
+            var vertices = this.cloud.geometry.vertices;
+            vertices.forEach(function (v) {
+                v.y = v.y - (v.velocityY);
+                v.x = v.x - (v.velocityX);
+                if (v.y <= 0) v.y = 60;
+                if (v.x <= -20 || v.x >= 20) v.velocityX = v.velocityX * -1;
+            });
+        }
+        
+        this.rainControls.redraw();
     }
 
 }
