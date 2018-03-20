@@ -209,14 +209,8 @@ function ParticleEngine()
 	// THREE.JS //
 	//////////////
 	
-	this.particleGeometry = new THREE.Geometry();
-	this.particleTexture  = null;
-	this.particleMaterial = new THREE.ShaderMaterial( 
+	this.particleGeometry = new THREE.BufferGeometry(
 	{
-		uniforms: 
-		{
-			texture:   { type: "t", value: this.particleTexture },
-		},
 		attributes:     
 		{
 			customVisible:	{ type: 'f',  value: [] },
@@ -224,6 +218,14 @@ function ParticleEngine()
 			customSize:		{ type: 'f',  value: [] },
 			customColor:	{ type: 'c',  value: [] },
 			customOpacity:	{ type: 'f',  value: [] }
+		}
+	});
+	this.particleTexture  = null;
+	this.particleMaterial = new THREE.ShaderMaterial( 
+	{
+		uniforms: 
+		{
+			texture:   { type: "t", value: this.particleTexture },
 		},
 		vertexShader:   particleVertexShader,
 		fragmentShader: particleFragmentShader,
@@ -257,13 +259,8 @@ ParticleEngine.prototype.setValues = function( parameters )
 	this.emitterAlive    = true;
 	this.particleCount = this.particlesPerSecond * Math.min( this.particleDeathAge, this.emitterDeathAge );
 	
-	this.particleGeometry = new THREE.Geometry();
-	this.particleMaterial = new THREE.ShaderMaterial( 
+	this.particleGeometry = new THREE.BufferGeometry(
 	{
-		uniforms: 
-		{
-			texture:   { type: "t", value: this.particleTexture },
-		},
 		attributes:     
 		{
 			customVisible:	{ type: 'f',  value: [] },
@@ -271,6 +268,13 @@ ParticleEngine.prototype.setValues = function( parameters )
 			customSize:		{ type: 'f',  value: [] },
 			customColor:	{ type: 'c',  value: [] },
 			customOpacity:	{ type: 'f',  value: [] }
+		}
+	});
+	this.particleMaterial = new THREE.ShaderMaterial( 
+	{
+		uniforms: 
+		{
+			texture:   { type: "t", value: this.particleTexture },
 		},
 		vertexShader:   particleVertexShader,
 		fragmentShader: particleFragmentShader,
@@ -337,19 +341,20 @@ ParticleEngine.prototype.createParticle = function()
 	return particle;
 }
 
-ParticleEngine.prototype.initialize = function()
+ParticleEngine.prototype.initialize = function(scene)
 {
 	// link particle data with geometry/material data
 	for (var i = 0; i < this.particleCount; i++)
 	{
+		debugger;
 		// remove duplicate code somehow, here and in update function below.
 		this.particleArray[i] = this.createParticle();
 		this.particleGeometry.vertices[i] = this.particleArray[i].position;
-		this.particleMaterial.attributes.customVisible.value[i] = this.particleArray[i].alive;
-		this.particleMaterial.attributes.customColor.value[i]   = this.particleArray[i].color;
-		this.particleMaterial.attributes.customOpacity.value[i] = this.particleArray[i].opacity;
-		this.particleMaterial.attributes.customSize.value[i]    = this.particleArray[i].size;
-		this.particleMaterial.attributes.customAngle.value[i]   = this.particleArray[i].angle;
+		this.particleGeometry.attributes.customVisible.value[i] = this.particleArray[i].alive;
+		this.particleGeometry.attributes.customColor.value[i]   = this.particleArray[i].color;
+		this.particleGeometry.attributes.customOpacity.value[i] = this.particleArray[i].opacity;
+		this.particleGeometry.attributes.customSize.value[i]    = this.particleArray[i].size;
+		this.particleGeometry.attributes.customAngle.value[i]   = this.particleArray[i].angle;
 	}
 	
 	this.particleMaterial.blending = this.blendStyle;
@@ -369,23 +374,27 @@ ParticleEngine.prototype.update = function(dt)
 	// update particle data
 	for (var i = 0; i < this.particleCount; i++)
 	{
-		if ( this.particleArray[i].alive )
+		//console.log(this.particleArray[i]);
+		if ( this.particleArray[i])
 		{
-			this.particleArray[i].update(dt);
-
-			// check if particle should expire
-			// could also use: death by size<0 or alpha<0.
-			if ( this.particleArray[i].age > this.particleDeathAge ) 
+			if ( this.particleArray[i].alive )
 			{
-				this.particleArray[i].alive = 0.0;
-				recycleIndices.push(i);
+				this.particleArray[i].update(dt);
+
+				// check if particle should expire
+				// could also use: death by size<0 or alpha<0.
+				if ( this.particleArray[i].age > this.particleDeathAge ) 
+				{
+					this.particleArray[i].alive = 0.0;
+					recycleIndices.push(i);
+				}
+				// update particle properties in shader
+				this.particleGeometry.attributes.customVisible.value[i] = this.particleArray[i].alive;
+				this.particleGeometry.attributes.customColor.value[i]   = this.particleArray[i].color;
+				this.particleGeometry.attributes.customOpacity.value[i] = this.particleArray[i].opacity;
+				this.particleGeometry.attributes.customSize.value[i]    = this.particleArray[i].size;
+				this.particleGeometry.attributes.customAngle.value[i]   = this.particleArray[i].angle;
 			}
-			// update particle properties in shader
-			this.particleMaterial.attributes.customVisible.value[i] = this.particleArray[i].alive;
-			this.particleMaterial.attributes.customColor.value[i]   = this.particleArray[i].color;
-			this.particleMaterial.attributes.customOpacity.value[i] = this.particleArray[i].opacity;
-			this.particleMaterial.attributes.customSize.value[i]    = this.particleArray[i].size;
-			this.particleMaterial.attributes.customAngle.value[i]   = this.particleArray[i].angle;
 		}		
 	}
 

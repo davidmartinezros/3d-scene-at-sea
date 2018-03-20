@@ -555,7 +555,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
    
         this.engine = new ParticleEngine();
         this.engine.setValues( settings );
-        this.engine.initialize();
+        this.engine.initialize(this.scene);
 
 
 
