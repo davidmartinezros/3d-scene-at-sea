@@ -22,7 +22,8 @@
         "styles.css"
       ],
       "scripts": [
-        "./app/scene/js/ParticleEngine.js"
+        "./app/scene/js/three.js",
+        "./app/scene/js/SPE.min.js"
       ],
       "environmentSource": "environments/environment.ts",
       "environments": {

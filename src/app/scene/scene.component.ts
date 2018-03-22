@@ -10,9 +10,12 @@ import "three/examples/js/loaders/OBJLoader";
 import "three/examples/js/loaders/MTLLoader";
 //import * as ParticleEngine from './js/ParticleEngine';
 
-declare var ParticleEngine:any;
+//declare var ParticleEngine: any;
 
-declare var Type:any;
+//declare var Type:any;
+
+declare var SPE: any;
+
 
 @Component({
     selector: 'scene',
@@ -38,6 +41,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
     public geometry: THREE.PlaneGeometry;
 
     public ms_Ocean;
+
+    public clock = new THREE.Clock();
 
     @ViewChild('canvas')
     private canvasRef: ElementRef;
@@ -202,8 +207,84 @@ export class SceneComponent implements OnInit, AfterViewInit {
             component.render();
         }());
         */
-       this.render();
+        this.render( this.clock.getDelta() );;
     }
+
+    particleGroup;
+    emitter;
+/*
+funciona: fa una font
+//
+    // Create particle group and emitter
+    private initParticles() {
+        this.particleGroup = new SPE.Group({
+            texture: {
+                value: this.loaderTextures.load('assets/textures/smokeparticle.png')
+            }
+        });
+
+        this.emitter = new SPE.Emitter({
+            maxAge: {
+                value: 2
+            },
+            position: {
+                value: new THREE.Vector3(0, 0, -50),
+                spread: new THREE.Vector3( 0, 0, 0 )
+            },
+
+            acceleration: {
+                value: new THREE.Vector3(0, -10, 0),
+                spread: new THREE.Vector3( 10, 0, 10 )
+            },
+
+            velocity: {
+                value: new THREE.Vector3(0, 25, 0),
+                spread: new THREE.Vector3(10, 7.5, 10)
+            },
+
+            color: {
+                value: [ new THREE.Color('white'), new THREE.Color('red') ]
+            },
+
+            size: {
+                value: 1
+            },
+
+            particleCount: 2000
+        });
+
+        this.particleGroup.addEmitter( this.emitter );
+        this.scene.add( this.particleGroup.mesh );
+    }
+*/
+    public getRandomNumber( base ) {
+        return Math.random() * base - (base/2);
+    }
+    // Create particle group and emitter
+    public initParticles() {
+        this.particleGroup = new SPE.Group({
+            texture: {
+                value: this.loaderTextures.load('assets/textures/smokeparticle.png')
+            },
+            fog: true
+        });
+        this.emitter = new SPE.Emitter({
+            type: SPE.distributions.BOX,
+            maxAge: 2,
+            position: {
+                value: new THREE.Vector3(0, 0, 0),
+                spread: new THREE.Vector3( 300, 300, 300 )
+            },
+            velocity: {
+                value: new THREE.Vector3( 0, ((-1.0)*this.getRandomNumber(30)), 0 )
+            },
+            particleCount: 30000,
+            isStatic: false
+        });
+        this.particleGroup.addEmitter( this.emitter );
+        this.scene.add( this.particleGroup.mesh );
+    }
+
     /*
     animate() {
         requestAnimationFrame( this.animate );
@@ -395,7 +476,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             console.log(i.object); // do what you want to do with object
             //i.object.position.y = i.object.position.y + 1;
         });
-        this.render();
+        this.render( this.clock.getDelta() );
     }
 
     private findAllObjects(pred: THREE.Object3D[], parent: THREE.Object3D) {
@@ -422,7 +503,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-        this.render();
+        this.render( this.clock.getDelta() );
     }
 
     @HostListener('document:keypress', ['$event'])
@@ -452,7 +533,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     textureRain;
 
-    engine;
+    //engine;
 
     ngAfterViewInit() {
         this.animate();
@@ -469,7 +550,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.renderer.shadowMap.enabled = true;
         //
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.001 );
+        this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
         //
         this.camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 1, 20000 );
         this.camera.position.set( 30, 30, 100 );
@@ -492,6 +573,39 @@ export class SceneComponent implements OnInit, AfterViewInit {
         };
         this.loaderTextures = new THREE.TextureLoader( this.manager );
         //
+
+        // Add Sky
+        /*
+        let sky = new THREE.Sky();
+        sky.scale.setScalar( 450000 );
+        scene.add( sky );
+        */      
+        // Add Sun Helper
+        
+        // per fer el sol
+        // https://github.com/mrdoob/three.js/blob/master/examples/webgl_shaders_sky.html
+        //
+        /* 
+        let sunSphere = new THREE.Mesh(
+            new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+            new THREE.MeshBasicMaterial( { color: 0xffffff } )
+        );
+        sunSphere.position.y = - 700000;
+        sunSphere.visible = false;
+        this.scene.add( sunSphere );
+
+        var distance = 400000;
+        var inclination = 0.49;
+        var azimuth =  0.75;
+
+        var theta = Math.PI * ( inclination - 0.5 );
+        var phi = 2 * Math.PI * ( azimuth - 0.5 );
+
+        sunSphere.position.x = distance * Math.cos( phi );
+        sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
+        sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
+        sunSphere.visible = true;
+        */
         this.setWater();
 
         this.setSkybox();
@@ -508,9 +622,15 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
         this.loadDolphin3();
 
-        this.loadBird();
+        this.loadBird1();
+
+        this.loadBird2();
+
+        this.loadBird3();
 
         this.loadPenguin();
+
+        this.initParticles();
 
         //this.createPointCloud(this.parameters.sizeRain, this.parameters.transparentRain, this.parameters.opacityRain, this.parameters.sizeAttenuationRain, this.parameters.colorRain);
 
@@ -530,6 +650,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
 
         //rain
+        /*
         var settings = {
             positionStyle    : Type.CUBE,
             positionBase     : new THREE.Vector3( 0, 0, 0 ),
@@ -556,7 +677,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.engine = new ParticleEngine();
         this.engine.setValues( settings );
         this.engine.initialize(this.scene);
-
+*/
 
 
 /*
@@ -732,7 +853,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
-    loadBird() {
+    loadBird1() {
         var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
         var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
@@ -748,6 +869,56 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.position.x = 50;
             obj.position.y = 50;
             obj.position.z = -50;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 1;
+            obj.scale.y = 1;
+            obj.scale.z = 1;
+
+            parent.scene.add( obj );
+        }, this.onProgress, this.onError );
+    }
+    loadBird2() {
+        var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
+        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader( this.manager );
+        let parent = this;  
+        loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialBird;
+                }
+            } );
+
+            let obj = object;
+            obj.position.x = 55;
+            obj.position.y = 55;
+            obj.position.z = -55;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 1;
+            obj.scale.y = 1;
+            obj.scale.z = 1;
+
+            parent.scene.add( obj );
+        }, this.onProgress, this.onError );
+    }
+    loadBird3() {
+        var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
+        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader( this.manager );
+        let parent = this;  
+        loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialBird;
+                }
+            } );
+
+            let obj = object;
+            obj.position.x = 40;
+            obj.position.y = 50;
+            obj.position.z = -40;
             obj.rotation.x = - Math.PI / 2;
             obj.rotation.z = - Math.PI / 2;
             obj.scale.x = 1;
@@ -878,17 +1049,23 @@ export class SceneComponent implements OnInit, AfterViewInit {
     animate() {
         console.log("render");
         requestAnimationFrame( this.animate );
-        this.render();
+        this.render( this.clock.getDelta() );
         //stats.update();
     }
-    render() {
-        var time = performance.now() * 0.001;
+    render( dt ) {
+        //var time = performance.now() * 0.001;
         this.water.material.uniforms.time.value += 1.0 / 60.0;
         this.water.material.uniforms.size.value = this.parameters.size;
         this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
         this.water.material.uniforms.alpha.value = this.parameters.alpha;
 
-        this.engine.update( 0.01 * 0.5 );
+        this.particleGroup.tick( dt );
+
+        console.log(this.clock.getDelta())
+
+        //this.light.position.set( - 30, 30, 30 );
+
+        //this.engine.update( 0.01 * 0.5 );
 
         //setTimeout(this.renderRain, 3000);
 
