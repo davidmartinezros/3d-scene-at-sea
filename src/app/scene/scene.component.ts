@@ -8,12 +8,15 @@ import "three/examples/js/controls/OrbitControls";
 import "three/examples/js/loaders/TDSLoader";
 import "three/examples/js/loaders/OBJLoader";
 import "three/examples/js/loaders/MTLLoader";
+import "three/examples/js/objects/Sky";
+
 //import * as ParticleEngine from './js/ParticleEngine';
 
 //declare var ParticleEngine: any;
 
 //declare var Type:any;
 
+// http://squarefeet.github.io/ShaderParticleEngine/
 declare var SPE: any;
 
 
@@ -207,11 +210,12 @@ export class SceneComponent implements OnInit, AfterViewInit {
             component.render();
         }());
         */
-        this.render( this.clock.getDelta() );;
+        this.render();
     }
 
     particleGroup;
-    emitter;
+
+    particleGroupClouds
 /*
 funciona: fa una font
 //
@@ -257,8 +261,52 @@ funciona: fa una font
         this.scene.add( this.particleGroup.mesh );
     }
 */
+
+    // Create particle group and emitter
+    initParticlesClouds() {
+        this.particleGroupClouds = new SPE.Group({
+            texture: {
+                value: THREE.ImageUtils.loadTexture('assets/textures/cloud.png')
+            },
+            blending: THREE.NormalBlending,
+            fog: true
+        });
+        let emitter = new SPE.Emitter({
+            particleCount: 750,
+            maxAge: {
+                value: 2,
+            },
+            position: {
+                value: new THREE.Vector3( 0, 200, 0 ),
+                spread: new THREE.Vector3( 600, 300, 600 )
+            },
+            velocity: {
+                value: new THREE.Vector3( 0, 0, 30 )
+            },
+            wiggle: {
+                spread: 10
+            },
+            size: {
+                value: 75,
+                spread: 50
+            },
+            opacity: {
+                value: [ 0, 1, 0 ]
+            },
+            color: {
+                value: new THREE.Color( 1, 1, 1 ),
+                spread: new THREE.Color( 0.1, 0.1, 0.1 )
+            },
+            angle: {
+                value: [ 0, Math.PI * 0.125 ]
+            }
+        });
+        this.particleGroupClouds.addEmitter( emitter );
+        this.scene.add( this.particleGroupClouds.mesh );
+    }
+
     public getRandomNumber( base ) {
-        return Math.random() * base - (base/2);
+        return Math.abs(Math.random() * base - (base/2));
     }
     // Create particle group and emitter
     public initParticles() {
@@ -268,7 +316,7 @@ funciona: fa una font
             },
             fog: true
         });
-        this.emitter = new SPE.Emitter({
+        let emitter = new SPE.Emitter({
             type: SPE.distributions.BOX,
             maxAge: 2,
             position: {
@@ -276,12 +324,12 @@ funciona: fa una font
                 spread: new THREE.Vector3( 300, 300, 300 )
             },
             velocity: {
-                value: new THREE.Vector3( 0, ((-1.0)*this.getRandomNumber(30)), 0 )
+                value: new THREE.Vector3( 0, (-1.0)*this.getRandomNumber(30), 0 )
             },
             particleCount: 30000,
             isStatic: false
         });
-        this.particleGroup.addEmitter( this.emitter );
+        this.particleGroup.addEmitter( emitter );
         this.scene.add( this.particleGroup.mesh );
     }
 
@@ -476,7 +524,7 @@ funciona: fa una font
             console.log(i.object); // do what you want to do with object
             //i.object.position.y = i.object.position.y + 1;
         });
-        this.render( this.clock.getDelta() );
+        this.render();
     }
 
     private findAllObjects(pred: THREE.Object3D[], parent: THREE.Object3D) {
@@ -503,7 +551,7 @@ funciona: fa una font
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-        this.render( this.clock.getDelta() );
+        this.render();
     }
 
     @HostListener('document:keypress', ['$event'])
@@ -533,11 +581,16 @@ funciona: fa una font
 
     textureRain;
 
+    sunSphere;
+
+    sky;
+
     //engine;
 
     ngAfterViewInit() {
         this.animate();
     }
+    
     /* LIFECYCLE */
     ngOnInit() {
         //
@@ -550,10 +603,14 @@ funciona: fa una font
         this.renderer.shadowMap.enabled = true;
         //
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
+        //this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
         //
-        this.camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 1, 20000 );
+        this.camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 1, 2000000 );
         this.camera.position.set( 30, 30, 100 );
+/*
+        this.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 100, 2000000 );
+		this.camera.position.set( 0, 100, 2000 );
+*/
         //
         this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
         this.light.position.set( - 30, 30, 30 );
@@ -574,6 +631,62 @@ funciona: fa una font
         this.loaderTextures = new THREE.TextureLoader( this.manager );
         //
 
+        // Add Sky
+        this.sky = new THREE.Sky();
+        this.sky.scale.setScalar( 450000 );
+        this.scene.add( this.sky );
+        // Add Sun Helper
+        this.sunSphere = new THREE.Mesh(
+            new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+            new THREE.MeshBasicMaterial( { color: 0xffffff } )
+        );
+        this.sunSphere.position.y = - 700000;
+        this.sunSphere.visible = false;
+        this.scene.add( this.sunSphere );
+        /// GUI
+        var effectController  = {
+            turbidity: 10,
+            rayleigh: 2,
+            mieCoefficient: 0.005,
+            mieDirectionalG: 0.8,
+            luminance: 1,
+            inclination: 0.49, // elevation / inclination
+            azimuth: 0.25, // Facing front,
+            sun: ! true
+        };
+
+        function guiChanged() {
+
+            var distance = 100;
+            
+            //var uniforms = this.sky.material.uniforms;
+            var uniforms = this.sky.material.uniforms;
+            uniforms.turbidity.value = effectController.turbidity;
+            uniforms.rayleigh.value = effectController.rayleigh;
+            uniforms.luminance.value = effectController.luminance;
+            uniforms.mieCoefficient.value = effectController.mieCoefficient;
+            uniforms.mieDirectionalG.value = effectController.mieDirectionalG;
+            var theta = Math.PI * ( effectController.inclination - 0.5 );
+            var phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+            this.sunSphere.position.x = distance * Math.cos( phi );
+            this.sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
+            this.sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
+            this.sunSphere.visible = effectController.sun;
+            uniforms.sunPosition.value.copy( this.sunSphere.position );
+            this.renderer.render( this.scene, this.camera );
+        }
+/*
+        var gui = new dat.GUI();
+        gui.add( effectController, "turbidity", 1.0, 20.0, 0.1 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "rayleigh", 0.0, 4, 0.001 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "mieCoefficient", 0.0, 0.1, 0.001 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "mieDirectionalG", 0.0, 1, 0.001 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "luminance", 0.0, 2 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "inclination", 0, 1, 0.0001 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "azimuth", 0, 1, 0.0001 ).onChange( guiChanged.bind(this) );
+        gui.add( effectController, "sun" ).onChange( guiChanged.bind(this) );
+        guiChanged.bind(this);
+*/
         // Add Sky
         /*
         let sky = new THREE.Sky();
@@ -608,7 +721,7 @@ funciona: fa una font
         */
         this.setWater();
 
-        this.setSkybox();
+        //this.setSkybox();
 
         this.loadIsland();
 
@@ -631,6 +744,8 @@ funciona: fa una font
         this.loadPenguin();
 
         this.initParticles();
+
+        this.initParticlesClouds();
 
         //this.createPointCloud(this.parameters.sizeRain, this.parameters.transparentRain, this.parameters.opacityRain, this.parameters.sizeAttenuationRain, this.parameters.colorRain);
 
@@ -1047,21 +1162,71 @@ funciona: fa una font
     }
 
     animate() {
-        console.log("render");
+        //console.log("render");
         requestAnimationFrame( this.animate );
-        this.render( this.clock.getDelta() );
+        this.render();
         //stats.update();
     }
-    render( dt ) {
-        //var time = performance.now() * 0.001;
-        this.water.material.uniforms.time.value += 1.0 / 60.0;
-        this.water.material.uniforms.size.value = this.parameters.size;
-        this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
-        this.water.material.uniforms.alpha.value = this.parameters.alpha;
 
-        this.particleGroup.tick( dt );
+    dtIncrement: number = 0;
 
-        console.log(this.clock.getDelta())
+    esNegatiu: boolean = false;
+
+    render() {
+        //console.log(this.clock.getElapsedTime())
+        
+        if(this.water) {
+            this.water.material.uniforms.time.value += 1.0 / 60.0;
+            this.water.material.uniforms.size.value = this.parameters.size;
+            this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
+            this.water.material.uniforms.alpha.value = this.parameters.alpha;
+        }
+        if(this.particleGroup) {
+            this.particleGroup.tick( this.clock.getDelta() );
+        }
+        if(this.particleGroupClouds) {
+            this.particleGroupClouds.tick( this.clock.getDelta() );
+        }
+        console.log(Math.round(this.clock.getElapsedTime()));
+        
+        if(this.sunSphere) {
+            var distance = 100;
+            var range = 100.0;
+            
+            let dt = this.clock.getElapsedTime();
+            if(dt != 0 && dt%range == 0) {
+                this.esNegatiu = !this.esNegatiu;
+                //console.log('incrementem')
+                this.dtIncrement += range;
+            }
+            dt = dt - this.dtIncrement;
+            if(this.esNegatiu) {
+                dt = (-1.0)*dt;
+            }
+            //console.log(dt)
+            let percent = (dt - 0.0) / (range - 0.0);
+            //console.log(percent);
+            //let inclination = percent * (0.5 - 0.0) + 0.0;
+            //let inclination = 0.49;
+            let inclination = percent * (0.5 - 0.25) + 0.25;
+            let azimuth  = percent * (0.5 - 0.0) + 0.0;
+            //console.log('inclination:' + inclination)
+            //console.log('azimuth:' + azimuth)
+            //let inclination = 0.50 - x; // on x va de 0 a 0.50 i de 0.50 a 0
+            //let azimuth = 0.0 + y; // on y va de 0.0 a 0.50
+            var uniforms = this.sky.material.uniforms;
+            var theta = Math.PI * ( inclination - 0.5 );
+            var phi = 2 * Math.PI * ( azimuth - 0.5 );
+            this.sunSphere.position.x = distance * Math.cos( phi );
+            this.sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
+            this.sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
+            this.sunSphere.visible = true;
+            uniforms.sunPosition.value.copy( this.sunSphere.position );
+            this.renderer.render( this.scene, this.camera );
+        }
+        
+
+        //console.log(this.clock.getDelta())
 
         //this.light.position.set( - 30, 30, 30 );
 
