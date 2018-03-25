@@ -2,7 +2,9 @@ import { AfterViewInit, OnInit, Component, ElementRef, Input, ViewChild, HostLis
 import * as dat from './js/dat.gui.min';
 import * as Stats from './js/stats.min';
 import * as THREE from 'three';
-import "./js/EnableThreeExamples";
+import "./js/EnableThree";
+import * as TWEEN from '@tweenjs/tween.js';
+import "./js/EnableTween";
 import "three/examples/js/objects/Water";
 import "three/examples/js/controls/OrbitControls";
 import "three/examples/js/loaders/TDSLoader";
@@ -29,7 +31,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     private renderer: THREE.WebGLRenderer;
     private camera: THREE.PerspectiveCamera;
-    private cameraTarget: THREE.Vector3;
+    //private cameraTarget: THREE.Vector3;
     public scene: THREE.Scene;
 
     public mesh: THREE.Mesh;
@@ -84,28 +86,13 @@ export class SceneComponent implements OnInit, AfterViewInit {
         light.position.set(0, 1000, -1000);
         this.scene.add(light);
     }
-
+    /*
     private createCamera() {
         this.camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 300000);
         this.camera.position.set(450, 350, 450);
         this.camera.lookAt(new THREE.Vector3());
-/*
-        let aspectRatio = this.getAspectRatio();
-        this.camera = new THREE.PerspectiveCamera(
-            this.fieldOfView,
-            aspectRatio,
-            this.nearClippingPane,
-            this.farClippingPane
-        );
-
-        // Set position and look at
-        this.camera.position.x = 1500;
-        this.camera.position.y = 1000;
-        this.camera.position.z = 1500;
-
-        this.camera.lookAt(new THREE.Vector3(0,0,0));*/
     }
-
+    */
     private createSquare(x,y,z) {
         let squareGeometry = new THREE.Geometry();
         squareGeometry.vertices.push(new THREE.Vector3(10*x, 0.0, 10*z)); 
@@ -520,10 +507,88 @@ funciona: fa una font
         var intersects = raycaster.intersectObjects(obj);
         console.log("Scene has " + obj.length + " objects");
         console.log(intersects.length + " intersected objects found")
+        let trobat = false;
         intersects.forEach((i) => {
             console.log(i.object); // do what you want to do with object
             //i.object.position.y = i.object.position.y + 1;
+            if(elementTrobat.bind(this)(i.object)) {
+                trobat = true;
+            }
+            if(trobat) {
+                //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
+                return;
+            }
+                 
         });
+
+        function elementTrobat(i) {
+            if((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear")) {
+                //this.camera.lookAt( i.position );
+                //this.camera.position.set(i.position.x + 100, i.position.y + 50, i.position.z + 100);
+                
+                //console.log(this.controls);
+                //console.log(this.camera);
+                
+                var lookAtVector = new THREE.Vector3(0, 0, 1);
+                lookAtVector.applyQuaternion(i.quaternion);
+                console.log(lookAtVector);
+                
+                var rotateTween = new TWEEN.Tween(this.controls.target)
+                    .to({
+                        x: i.position.x,
+                        y: i.position.y,
+                        z: i.position.z
+                    }, 4000)
+                    .interpolation(TWEEN.Interpolation.CatmullRom)
+                    .easing(TWEEN.Easing.Quintic.InOut)
+                    .start();
+                    /*
+                new TWEEN.Tween(this.controls.target).to({
+                    x: i.position.x,
+                    y: i.position.y,
+                    z: i.position.z}, 3000)
+                    .onUpdate(function () {
+                        this.controls.target.position.x = i.position.x;
+                        this.controls.target.position.y = i.position.y;
+                        this.controls.target.position.z = i.position.z;
+                    }).start();
+                    */
+
+                var goTween = new TWEEN.Tween(this.camera.position)
+                    .to({
+                        x: i.position.x,
+                        y: i.position.y,
+                        z: i.position.z + 10
+                    }, 4000)
+                    .interpolation(TWEEN.Interpolation.CatmullRom)
+                    .easing(TWEEN.Easing.Quintic.InOut);
+
+                console.log(goTween)
+                goTween.start(this.clock.getDelta());
+                goTween.onComplete(function() {
+                    console.log('done!');
+                });
+                
+                goTween.onUpdate.bind(this, this.onCameraAnimUpdate)();
+                goTween.onComplete.bind(this, this.onCameraAnimComplete)();
+                goTween.start();
+
+/*
+                this.controls.target.set( 
+                    i.position.x,
+                    i.position.y,
+                    i.position.z + 10 );
+*/
+                //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
+
+                //if(i.material)  i.material.color = null;
+                return true;
+            } else if(i.parent && i.parent != null) {
+                return elementTrobat.bind(this)(i.parent);
+            } else {
+                return false;
+            }
+        }
         this.render();
     }
 
@@ -723,11 +788,13 @@ funciona: fa una font
 
         //this.setSkybox();
 
-        this.loadIsland();
+        //this.loadIsland();
+
+        this.loadTerrain();
 
         //this.loadPalmTree();
 
-        this.loadTree();
+        //this.loadTree();
 
         this.loadDolphin1();
 
@@ -743,6 +810,8 @@ funciona: fa una font
 
         this.loadPenguin();
 
+        this.loadBear();
+
         this.initParticles();
 
         this.initParticlesClouds();
@@ -752,11 +821,11 @@ funciona: fa una font
         //
         this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
         this.controls.maxPolarAngle = Math.PI * 0.495;
-        this.controls.target.set( 0, 10, 0 );
+        //this.controls.target.set( 0, 10, 0 );
         this.controls.enablePan = false;
         this.controls.minDistance = 40.0;
         this.controls.maxDistance = 200.0;
-        this.camera.lookAt( this.controls.target );
+        //this.camera.lookAt( this.controls.target );
         //
         //this.stats = new Stats();
         //container.appendChild( this.stats.dom );
@@ -881,6 +950,33 @@ funciona: fa una font
         this.scene.add(this.cloud);
     }
 
+    loadTerrain() {
+        var textureTerrain = this.loaderTextures.load( 'assets/snow-terrain/686.jpg' );
+        var materialTerrain = new THREE.MeshLambertMaterial({map: textureTerrain, needsUpdate: true});
+        var loader3ds = new THREE.TDSLoader( this.manager );
+        let parent = this;
+        //loader.setPath( 'asssets/dolphin/' );
+        loader3ds.load( 'assets/snow-terrain/SnowTerrain.3ds', function ( object ) {
+            object.traverse( function ( child ) {
+                if ( child instanceof THREE.Mesh ) {
+                    child.material = materialTerrain;
+                }
+            } );
+
+            let obj = object;
+            obj.position.x = 0;
+            obj.position.y = -30;
+            obj.position.z = -600;
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 16;
+            obj.scale.y = 16;
+            obj.scale.z = 16;
+
+            parent.scene.add( obj );
+        }, this.onProgress, this.onError );
+    }
+
     loadIsland() {
         var geometry = new THREE.CylinderGeometry( 50, 50, 10, 32 );
         var textureSand = this.loaderTextures.load('assets/island/sand-texture.jpg');
@@ -909,6 +1005,7 @@ funciona: fa una font
             //object.position.x = - 60;
             //object.position.y = 60;
             let obj = object;
+            obj.name = "dolphin";
             obj.rotation.x = - Math.PI / 2;
             obj.rotation.z = - Math.PI / 2;
             obj.scale.x = 16;
@@ -932,6 +1029,7 @@ funciona: fa una font
             } );
 
             let obj = object;
+            obj.name = "dolphin";
             obj.position.x = 10;
             obj.position.y = 10;
             obj.position.z = 15;
@@ -957,6 +1055,7 @@ funciona: fa una font
             } );
 
             let obj = object;
+            obj.name = "dolphin";
             obj.position.x = -10;
             obj.position.z = 30;
             obj.rotation.x = - Math.PI / 2;
@@ -981,6 +1080,7 @@ funciona: fa una font
             } );
 
             let obj = object;
+            obj.name = "bird";
             obj.position.x = 50;
             obj.position.y = 50;
             obj.position.z = -50;
@@ -1006,6 +1106,7 @@ funciona: fa una font
             } );
 
             let obj = object;
+            obj.name = "bird";
             obj.position.x = 55;
             obj.position.y = 55;
             obj.position.z = -55;
@@ -1031,6 +1132,7 @@ funciona: fa una font
             } );
 
             let obj = object;
+            obj.name = "bird";
             obj.position.x = 40;
             obj.position.y = 50;
             obj.position.z = -40;
@@ -1068,6 +1170,30 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+    loadBear() {
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/bear/' );
+        let parent = this;
+        mtlLoader.load( 'BearNew.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/bear/' );
+            loaderObj.load( 'BearNew.obj', function ( object ) {
+                let obj = object;
+                obj.name = "bear";
+                obj.position.x = - 170;
+                obj.position.z = - 205;
+                obj.position.y = 5;
+                obj.rotation.y = - Math.PI/2;
+                obj.scale.x = 0.3;
+                obj.scale.y = 0.3;
+                obj.scale.z = 0.3;
+                
+                parent.scene.add( obj );
+            }, parent.onProgress, parent.onError );
+        });
+    }
     loadTree() {
 
         var mtlLoader = new THREE.MTLLoader();
@@ -1103,10 +1229,10 @@ funciona: fa una font
             } );
             
             let obj = object;
-
-            obj.position.x = - 150;
-            obj.position.z = - 110;
-            obj.position.y = 2;
+            obj.name = "penguin";
+            obj.position.x = - 180;
+            obj.position.z = - 180;
+            obj.position.y = 5;
             obj.rotation.y = 90* Math.PI / 180;
             obj.scale.x = 0.3;
             obj.scale.y = 0.3;
@@ -1187,7 +1313,7 @@ funciona: fa una font
         if(this.particleGroupClouds) {
             this.particleGroupClouds.tick( this.clock.getDelta() );
         }
-        console.log(Math.round(this.clock.getElapsedTime()));
+        //console.log(Math.round(this.clock.getElapsedTime()));
         
         if(this.sunSphere) {
             var distance = 100;
@@ -1222,7 +1348,6 @@ funciona: fa una font
             this.sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
             this.sunSphere.visible = true;
             uniforms.sunPosition.value.copy( this.sunSphere.position );
-            this.renderer.render( this.scene, this.camera );
         }
         
 
@@ -1233,6 +1358,8 @@ funciona: fa una font
         //this.engine.update( 0.01 * 0.5 );
 
         //setTimeout(this.renderRain, 3000);
+
+        TWEEN.update(this.clock.getDelta());
 
         this.renderer.render( this.scene, this.camera );
     }
