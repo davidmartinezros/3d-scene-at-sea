@@ -72,12 +72,22 @@ export class SceneComponent implements OnInit, AfterViewInit {
     esNegatiu: boolean = false;
 
     constructor() {
-        this.render = this.render.bind(this);
-        this.animate = this.animate.bind(this);
+        this.createManagements();
     }
 
     private get canvas(): HTMLCanvasElement {
         return this.canvasRef.nativeElement;
+    }
+
+    private createManagements() {
+        this.render = this.render.bind(this);
+        this.animate = this.animate.bind(this);
+
+        this.manager = new THREE.LoadingManager();
+        this.manager.onProgress = function ( item, loaded, total ) {
+            console.log( item, loaded, total );
+        };
+        this.loaderTextures = new THREE.TextureLoader( this.manager );
     }
 
     private createScene() {
@@ -86,7 +96,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         //this.scene.add(new THREE.AxisHelper(200));
     }
 
-    private createLight() {
+    private createLights() {
         this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
         this.light.position.set( - 30, 30, 30 );
         this.light.castShadow = true;
@@ -106,7 +116,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.camera.position.set( 30, 30, 100 );
     }
 
-    private startRendering() {
+    private createRenderer() {
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
             antialias: true
@@ -172,7 +182,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
     
     // Creacio de neu / pluja
-    public initParticles() {
+    public initParticlesSnow() {
         this.particleGroup = new SPE.Group({
             texture: {
                 value: this.loaderTextures.load('assets/textures/smokeparticle.png')
@@ -228,7 +238,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             }
             if(trobat) {
                 //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
-                let myWindow = window.open("https://davidmartinezros.com/main", "", "width=100, height=100");
+                //let myWindow = window.open("https://davidmartinezros.com/main", "", "width=100, height=100");
                 return;
             }
                  
@@ -342,69 +352,33 @@ export class SceneComponent implements OnInit, AfterViewInit {
     
     /* LIFECYCLE */
     ngOnInit() {
-        //
-        this.manager = new THREE.LoadingManager();
-        this.manager.onProgress = function ( item, loaded, total ) {
-            console.log( item, loaded, total );
-        };
-        this.loaderTextures = new THREE.TextureLoader( this.manager );
-        //
-        this.startRendering();
-        //
+        // Create Configuration
+        this.createRenderer();
         this.createScene();
-        //
         this.createCamera();
-        //
-        this.createLight();
-        // Add Sky
+        this.createLights();
+
+        // Create Scene
         this.createSky();
-        //
-        this.setWater();
-
+        this.createWater();
+        this.createTerrain();
         //this.loadIsland();
-
-        this.loadTerrain();
-
         //this.loadPalmTree();
-
         //this.loadTree();
 
-        this.loadDolphin1();
-
-        this.loadDolphin2();
-
-        this.loadDolphin3();
-
-        this.loadBird1();
-
-        this.loadBird2();
-
-        this.loadBird3();
-
+        // Load Animals
+        this.loadDolphins();
+        this.loadBirds();
         this.loadPenguin();
+        //this.loadBear();
 
-        this.loadBear();
-
-        this.initParticles();
-
+        // Init Snow and Clouds Particles
+        this.initParticlesSnow();
         this.initParticlesClouds();
-        //
-        this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
-        this.controls.maxPolarAngle = Math.PI * 0.495;
-        //this.controls.target.set( 0, 10, 0 );
-        this.controls.enablePan = false;
-        this.controls.minDistance = 40.0;
-        this.controls.maxDistance = 200.0;
 
-        var gui = new dat.GUI();
-        gui.add( this.parameters, 'distortionScale', 0, 8, 0.1 );
-        gui.add( this.parameters, 'size', 0.1, 10, 0.1 );
-        gui.add( this.parameters, 'alpha', 0.9, 1, .001 );
-        //gui.add( this.rainControls, 'sizeRain', 0, 20).onChange(this.rainControls.redraw);;
-        //gui.add( this.rainControls, 'transparentRain').onChange(this.rainControls.redraw);;
-        //gui.add( this.rainControls, 'opacityRain', 0, 1).onChange(this.rainControls.redraw);;
-        //gui.addColor( this.rainControls, 'colorRain').onChange(this.rainControls.redraw);;
-        //gui.add( this.rainControls, 'sizeAttenuationRain').onChange(this.rainControls.redraw);
+        // Init Options
+        this.initOptionsEvents();
+        this.initOptionsParameters();
     }
 
     onProgress = function ( xhr ) {
@@ -416,6 +390,27 @@ export class SceneComponent implements OnInit, AfterViewInit {
     onError = function ( xhr ) {
         console.log(xhr);
     };
+
+    private initOptionsEvents() {
+        this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
+        this.controls.maxPolarAngle = Math.PI * 0.495;
+        //this.controls.target.set( 0, 10, 0 );
+        this.controls.enablePan = true;
+        this.controls.minDistance = 40.0;
+        this.controls.maxDistance = 200.0;
+    }
+
+    private initOptionsParameters() {
+        var gui = new dat.GUI();
+        gui.add( this.parameters, 'distortionScale', 0, 8, 0.1 );
+        gui.add( this.parameters, 'size', 0.1, 10, 0.1 );
+        gui.add( this.parameters, 'alpha', 0.9, 1, .001 );
+        //gui.add( this.rainControls, 'sizeRain', 0, 20).onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'transparentRain').onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'opacityRain', 0, 1).onChange(this.rainControls.redraw);;
+        //gui.addColor( this.rainControls, 'colorRain').onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'sizeAttenuationRain').onChange(this.rainControls.redraw);
+    }
 
     private createSky() {
         // per fer el sol
@@ -467,7 +462,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         }
     }
 
-    loadTerrain() {
+    createTerrain() {
         var textureTerrain = this.loaderTextures.load( 'assets/snow-terrain/686.jpg' );
         var materialTerrain = new THREE.MeshLambertMaterial({map: textureTerrain, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
@@ -481,9 +476,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
             } );
 
             let obj = object;
-            obj.position.x = 200;
-            obj.position.y = -40;
-            obj.position.z = -1300;
+            obj.position.x = 150;
+            obj.position.y = -110;
+            obj.position.z = -1000;
             obj.rotation.x = - Math.PI / 2;
             obj.rotation.z = Math.PI / 2;
             //obj.rotation.y = - Math.PI / 2;
@@ -506,13 +501,12 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.scene.add( cylinder );
     }
     */
-    loadDolphin1() {
+    loadDolphins() {
         var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
-        
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
-        //loader.setPath( 'asssets/dolphin/' );
+        let obj;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
@@ -520,9 +514,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 }
             } );
 
-            //object.position.x = - 60;
-            //object.position.y = 60;
-            let obj = object;
+            obj = object.clone();
             obj.name = "dolphin";
             obj.rotation.x = - Math.PI / 2;
             obj.rotation.z = - Math.PI / 2;
@@ -530,64 +522,30 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.y = 16;
             obj.scale.z = 16;
 
+            obj = obj.clone();
+            obj.position.x = 0;
+            obj.position.y = 0;
+            obj.position.z = 0;
             parent.scene.add( obj );
-        }, this.onProgress, this.onError );
 
-    }
-    loadDolphin2() {
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
-        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader( this.manager );
-        let parent = this;
-        loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
-            object.traverse( function ( child ) {
-                if ( child instanceof THREE.Mesh ) {
-                    child.material = materialDolphin;
-                }
-            } );
-
-            let obj = object;
-            obj.name = "dolphin";
+            obj = obj.clone();
             obj.position.x = 10;
             obj.position.y = 10;
             obj.position.z = 15;
-            obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = - Math.PI / 2;
-            obj.scale.x = 16;
-            obj.scale.y = 16;
-            obj.scale.z = 16;
-
             parent.scene.add( obj );
-        }, this.onProgress, this.onError );
-    }
 
-    loadDolphin3() {
-        var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
-        var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader( this.manager );
-        let parent = this;
-        loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
-            object.traverse( function ( child ) {
-                if ( child instanceof THREE.Mesh ) {
-                    child.material = materialDolphin;
-                }
-            } );
-
-            let obj = object;
-            obj.name = "dolphin";
+            obj = obj.clone();
             obj.position.x = -10;
+            obj.position.y = 0;
             obj.position.z = 30;
-            obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = - Math.PI / 2;
-            obj.scale.x = 16;
-            obj.scale.y = 16;
-            obj.scale.z = 16;
-
             parent.scene.add( obj );
+
         }, this.onProgress, this.onError );
+
+        return obj;
     }
 
-    loadBird1() {
+    loadBirds() {
         var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
         var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
@@ -601,70 +559,30 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
             let obj = object;
             obj.name = "bird";
+            obj.rotation.x = - Math.PI / 2;
+            obj.rotation.z = - Math.PI / 2;
+            obj.scale.x = 1;
+            obj.scale.y = 1;
+            obj.scale.z = 1;
+
+            obj = obj.clone();
             obj.position.x = 50;
             obj.position.y = 50;
             obj.position.z = -50;
-            obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = - Math.PI / 2;
-            obj.scale.x = 1;
-            obj.scale.y = 1;
-            obj.scale.z = 1;
-
             parent.scene.add( obj );
-        }, this.onProgress, this.onError );
-    }
 
-    loadBird2() {
-        var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
-        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader( this.manager );
-        let parent = this;  
-        loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
-            object.traverse( function ( child ) {
-                if ( child instanceof THREE.Mesh ) {
-                    child.material = materialBird;
-                }
-            } );
-
-            let obj = object;
-            obj.name = "bird";
+            obj = obj.clone();
             obj.position.x = 55;
             obj.position.y = 55;
             obj.position.z = -55;
-            obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = - Math.PI / 2;
-            obj.scale.x = 1;
-            obj.scale.y = 1;
-            obj.scale.z = 1;
-
             parent.scene.add( obj );
-        }, this.onProgress, this.onError );
-    }
 
-    loadBird3() {
-        var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
-        var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
-        var loader3ds = new THREE.TDSLoader( this.manager );
-        let parent = this;  
-        loader3ds.load( 'assets/bird/flying-bird.3DS', function ( object ) {
-            object.traverse( function ( child ) {
-                if ( child instanceof THREE.Mesh ) {
-                    child.material = materialBird;
-                }
-            } );
-
-            let obj = object;
-            obj.name = "bird";
+            obj = obj.clone();
             obj.position.x = 40;
             obj.position.y = 50;
             obj.position.z = -40;
-            obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = - Math.PI / 2;
-            obj.scale.x = 1;
-            obj.scale.y = 1;
-            obj.scale.z = 1;
-
             parent.scene.add( obj );
+
         }, this.onProgress, this.onError );
     }
     /*
@@ -768,7 +686,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         }, this.onProgress, this.onError );
     }
 
-    setWater() {
+    createWater() {
         var waterGeometry = new THREE.PlaneBufferGeometry( this.parameters.oceanSide * 5, this.parameters.oceanSide * 5 );
         this.water = new THREE.Water(
             waterGeometry,
