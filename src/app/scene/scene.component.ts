@@ -64,8 +64,10 @@ export class SceneComponent implements OnInit, AfterViewInit {
     cloud;
     sunSphere;
     sky;
-    particleGroup;
+    particleGroupSnow;
+    emitterSnow;
     particleGroupClouds;
+    emitterClouds;
     
     // parameters configuration
     dtIncrement: number = 0;
@@ -143,7 +145,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             blending: THREE.NormalBlending,
             fog: true
         });
-        let emitter = new SPE.Emitter({
+        this.emitterClouds = new SPE.Emitter({
             particleCount: 750,
             maxAge: {
                 value: 2,
@@ -173,7 +175,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 value: [ 0, Math.PI * 0.125 ]
             }
         });
-        this.particleGroupClouds.addEmitter( emitter );
+        this.particleGroupClouds.addEmitter( this.emitterClouds );
         this.scene.add( this.particleGroupClouds.mesh );
     }
 
@@ -183,13 +185,13 @@ export class SceneComponent implements OnInit, AfterViewInit {
     
     // Creacio de neu / pluja
     public initParticlesSnow() {
-        this.particleGroup = new SPE.Group({
+        this.particleGroupSnow = new SPE.Group({
             texture: {
                 value: this.loaderTextures.load('assets/textures/smokeparticle.png')
             },
             fog: true
         });
-        let emitter = new SPE.Emitter({
+        this.emitterSnow = new SPE.Emitter({
             type: SPE.distributions.BOX,
             maxAge: 2,
             position: {
@@ -202,8 +204,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
             particleCount: 30000,
             isStatic: false
         });
-        this.particleGroup.addEmitter( emitter );
-        this.scene.add( this.particleGroup.mesh );
+        this.particleGroupSnow.addEmitter( this.emitterSnow );
+        this.scene.add( this.particleGroupSnow.mesh );
     }
 
     /* EVENTS */
@@ -394,7 +396,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     private initOptionsEvents() {
         this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
         this.controls.maxPolarAngle = Math.PI * 0.495;
-        //this.controls.target.set( 0, 10, 0 );
+        this.controls.target.set( 0, 0, 0 );
         this.controls.enablePan = true;
         this.controls.minDistance = 40.0;
         this.controls.maxDistance = 200.0;
@@ -714,6 +716,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.render();
     }
 
+    quantitatDeDies: number = 1;
+
     render() {
         //console.log(this.clock.getElapsedTime())
         
@@ -723,8 +727,17 @@ export class SceneComponent implements OnInit, AfterViewInit {
             this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
             this.water.material.uniforms.alpha.value = this.parameters.alpha;
         }
-        if(this.particleGroup) {
-            this.particleGroup.tick( this.clock.getDelta() );
+        if(this.controls.target) {
+            if(this.emitterClouds) {
+                this.emitterClouds.position.value = this.controls.target;
+            }
+
+            if(this.emitterSnow) {
+                this.emitterSnow.position.value = this.controls.target;
+            }
+        }
+        if(this.particleGroupSnow) {
+            this.particleGroupSnow.tick( this.clock.getDelta() );
         }
         if(this.particleGroupClouds) {
             this.particleGroupClouds.tick( this.clock.getDelta() );
@@ -734,16 +747,19 @@ export class SceneComponent implements OnInit, AfterViewInit {
         if(this.sunSphere) {
             var distance = 100;
             var range = 100.0;
-            
+
             let dt = this.clock.getElapsedTime();
-            if(dt != 0 && dt%range == 0) {
+            //console.log("dt abans:" + dt);
+            if(dt - range*this.quantitatDeDies > 0) {
                 this.esNegatiu = !this.esNegatiu;
                 this.dtIncrement += range;
+                this.quantitatDeDies += 1;
             }
-            dt = dt - this.dtIncrement;
+            dt -= this.dtIncrement;
             if(this.esNegatiu) {
                 dt = (-1.0)*dt;
             }
+            //console.log("dt:" + dt);
             //
             let percent = (dt - 0.0) / (range - 0.0);
             let inclination = percent * (0.5 - 0.25) + 0.25;
