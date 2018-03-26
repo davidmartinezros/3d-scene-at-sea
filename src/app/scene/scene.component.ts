@@ -31,33 +31,49 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     private renderer: THREE.WebGLRenderer;
     private camera: THREE.PerspectiveCamera;
-    //private cameraTarget: THREE.Vector3;
-    public scene: THREE.Scene;
+    private scene: THREE.Scene;
 
-    public mesh: THREE.Mesh;
-    public cube: THREE.Mesh;
+    private loaderTextures: THREE.TextureLoader;
 
-    public fieldOfView: number = 60;
-    public nearClippingPane: number = 1;
-    public farClippingPane: number = 4000;
+    private controls: THREE.OrbitControls;
 
-    public controls: THREE.OrbitControls;
+    private manager: THREE.LoadingManager;
 
-    public geometry: THREE.PlaneGeometry;
+    private clock = new THREE.Clock();
 
-    public ms_Ocean;
-
-    public clock = new THREE.Clock();
+    private light: THREE.DirectionalLight;
 
     @ViewChild('canvas')
     private canvasRef: ElementRef;
 
+    // parameters ocean
+    parameters = {
+        oceanSide: 2000,
+        size: 1.0,
+        distortionScale: 3.7,
+        alpha: 1.0,
+        sizeRain: 2,
+        transparentRain: true,
+        sizeAttenuationRain: true,
+        opacityRain: 0.6,
+        colorRain: 0xffffff
+
+    };
+    // scene objects
+    water;
+    cloud;
+    sunSphere;
+    sky;
+    particleGroup;
+    particleGroupClouds;
+    
+    // parameters configuration
+    dtIncrement: number = 0;
+    esNegatiu: boolean = false;
+
     constructor() {
         this.render = this.render.bind(this);
         this.animate = this.animate.bind(this);
-        this.renderRain = this.renderRain.bind(this);
-        //this.renderControls = this.renderControls.bind(this);
-        //this.onModelLoadingCompleted = this.onModelLoadingCompleted.bind(this);
     }
 
     private get canvas(): HTMLCanvasElement {
@@ -66,190 +82,49 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     private createScene() {
         this.scene = new THREE.Scene();
-        this.scene.add(new THREE.AxisHelper(200));
-        //var loader = new THREE.ColladaLoader();
-        //loader.load('assets/model/multimaterial.dae', this.onModelLoadingCompleted);
+        this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
+        //this.scene.add(new THREE.AxisHelper(200));
     }
-    /*
-    private onModelLoadingCompleted(collada) {
-        var modelScene = collada.scene;
-        this.scene.add(modelScene);
-        this.render();
-    }
-    */
+
     private createLight() {
-        var light = new THREE.PointLight(0xffffff, 1, 1000);
-        light.position.set(0, 1000, 1000);
-        this.scene.add(light);
+        this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
+        this.light.position.set( - 30, 30, 30 );
+        this.light.castShadow = true;
+        this.light.shadow.camera.top = 45;
+        this.light.shadow.camera.right = 40;
+        this.light.shadow.camera.left = this.light.shadow.camera.bottom = -40;
+        this.light.shadow.camera.near = 1;
+        this.light.shadow.camera.far = 200;
+        this.scene.add( this.light );
 
-        var light = new THREE.PointLight(0xffffff, 1, 1000);
-        light.position.set(0, 1000, -1000);
-        this.scene.add(light);
+        var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
+        this.scene.add( ambientLight );
     }
-    /*
+
     private createCamera() {
-        this.camera = new THREE.PerspectiveCamera(55.0, window.innerWidth / window.innerHeight, 0.5, 300000);
-        this.camera.position.set(450, 350, 450);
-        this.camera.lookAt(new THREE.Vector3());
-    }
-    */
-    private createSquare(x,y,z) {
-        let squareGeometry = new THREE.Geometry();
-        squareGeometry.vertices.push(new THREE.Vector3(10*x, 0.0, 10*z)); 
-        squareGeometry.vertices.push(new THREE.Vector3(10*(x+1), 0.0, 10*z)); 
-        squareGeometry.vertices.push(new THREE.Vector3(10*(x+1), 0.0, 10*(z-1))); 
-        squareGeometry.vertices.push(new THREE.Vector3(10*x, 0.0, 10*(z-1)));
-        squareGeometry.faces.push(new THREE.Face3(0, 1, 2)); 
-        squareGeometry.faces.push(new THREE.Face3(0, 3, 2));
-        squareGeometry.faceVertexUvs[ 0 ].push( [
-            new THREE.Vector2( 0, 0 ),
-            new THREE.Vector2( 0, 1 ),
-            new THREE.Vector2( 1, 1 ),
-            new THREE.Vector2( 1, 0 )
-        ] );
-
-        let material = new THREE.MeshBasicMaterial({
-            color: new THREE.Color(0xff0000),
-            side: THREE.DoubleSide, 
-            wireframe: true});
-        this.mesh = new THREE.Mesh( squareGeometry, material );
-        this.scene.add(this.mesh);
-    }
-
-    private createMeshInSquares() {
-        
-        for(let x= -10; x < 10; x++) {
-            for(let z= 10; z > -10; z--) {
-                this.createSquare(x,0,z);
-            }
-        }
-
-        /*
-        var geom = new THREE.Geometry(); 
-        var v1 = new THREE.Vector3(-500,0,-500);
-        var v2 = new THREE.Vector3(-500,0,500);
-        var v3 = new THREE.Vector3(500,0,500);
-        var v4 = new THREE.Vector3(500,0,500);
-
-        geom.vertices.push(v1);
-        geom.vertices.push(v2);
-        geom.vertices.push(v3);
-        geom.vertices.push(v4);
-
-        geom.faces.push( new THREE.Face3( 0, 1, 2 ) );
-        geom.faces.push( new THREE.Face3( 2, 3, 0 ) );
-
-        this.mesh = new THREE.Mesh( geom, new THREE.MeshNormalMaterial() );
-        this.scene.add(this.mesh);
-        */
-    }
-
-    private createCube() {
-        let geometry = new THREE.BoxBufferGeometry(700, 700, 700, 10, 10, 10);
-        let material = new THREE.MeshBasicMaterial({color: 0x2121ce, vertexColors: 0x2121ce, wireframe: true/*, lights: true*/});
-        this.cube = new THREE.Mesh(geometry, material);
-        this.cube.rotation.x = Math.PI / 2;
-        this.scene.add(this.cube);
-
-    }
-
-    private createMesh() {
-        //var geometry = new THREE.BoxBufferGeometry(700, 700, 700, 10, 10, 10);
-        this.geometry = new THREE.PlaneGeometry(2000, 2000, 10, 10);
-        let material = new THREE.MeshBasicMaterial({color: 0x2121ce, vertexColors: 0x2121ce, wireframe: true/*, lights: true*/});
-        this.cube = new THREE.Mesh(this.geometry, material);
-        this.cube.rotation.x = Math.PI / 2;
-        this.scene.add(this.cube);
-
-    }
-
-    private getAspectRatio(): number {
-        let height = this.canvas.clientHeight;
-        if (height === 0) {
-            return 0;
-        }
-        return this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera = new THREE.PerspectiveCamera( 55, (window.innerWidth - 16)/(window.innerHeight - 16), 1, 2000000 );
+        this.camera.position.set( 30, 30, 100 );
     }
 
     private startRendering() {
-        /*
-        this.renderer = new THREE.WebGLRenderer({canvas: this.canvas});
-        this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.renderer.context.getExtension('OES_texture_float');
-        this.renderer.context.getExtension('OES_texture_float_linear');
-        */
-        
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
-            antialias: true,
+            antialias: true
         });
-        this.renderer.setPixelRatio(devicePixelRatio);
-        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.renderer.setSize( window.innerWidth - 16, window.innerHeight - 16 );
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        this.renderer.setClearColor(0x000000, 1);
-        this.renderer.autoClear = true;
-        /*
-        let component: SceneComponent = this;
-
-        (function render() {
-            component.render();
-        }());
-        */
-        this.render();
     }
 
-    particleGroup;
-
-    particleGroupClouds
-/*
-funciona: fa una font
-//
-    // Create particle group and emitter
-    private initParticles() {
-        this.particleGroup = new SPE.Group({
-            texture: {
-                value: this.loaderTextures.load('assets/textures/smokeparticle.png')
-            }
-        });
-
-        this.emitter = new SPE.Emitter({
-            maxAge: {
-                value: 2
-            },
-            position: {
-                value: new THREE.Vector3(0, 0, -50),
-                spread: new THREE.Vector3( 0, 0, 0 )
-            },
-
-            acceleration: {
-                value: new THREE.Vector3(0, -10, 0),
-                spread: new THREE.Vector3( 10, 0, 10 )
-            },
-
-            velocity: {
-                value: new THREE.Vector3(0, 25, 0),
-                spread: new THREE.Vector3(10, 7.5, 10)
-            },
-
-            color: {
-                value: [ new THREE.Color('white'), new THREE.Color('red') ]
-            },
-
-            size: {
-                value: 1
-            },
-
-            particleCount: 2000
-        });
-
-        this.particleGroup.addEmitter( this.emitter );
-        this.scene.add( this.particleGroup.mesh );
+    private getAspectRatio(): number {
+        let height = window.innerHeight - 16;
+        if (height === 0) {
+            return 0;
+        }
+        return (window.innerWidth - 16)/(window.innerHeight - 16);
     }
-*/
 
-    // Create particle group and emitter
+    // Creacio de nuvols
     initParticlesClouds() {
         this.particleGroupClouds = new SPE.Group({
             texture: {
@@ -292,10 +167,11 @@ funciona: fa una font
         this.scene.add( this.particleGroupClouds.mesh );
     }
 
-    public getRandomNumber( base ) {
+    private getRandomNumber( base ) {
         return Math.abs(Math.random() * base - (base/2));
     }
-    // Create particle group and emitter
+    
+    // Creacio de neu / pluja
     public initParticles() {
         this.particleGroup = new SPE.Group({
             texture: {
@@ -320,170 +196,6 @@ funciona: fa una font
         this.scene.add( this.particleGroup.mesh );
     }
 
-    /*
-    animate() {
-        requestAnimationFrame( this.animate );
-        this.renderer.render( this.scene, this.camera );
-    }
-*/
-/*
-    makeModifications(component: SceneComponent) {
-        let vertices = component.geometry.vertices;
-        //console.log(vertices.length);
-        for(let i = 0; i <vertices.length; i++) {
-            vertices[i].z = Math.random()*100;
-            //console.log(vertices[i]);
-        }
-        component.geometry.verticesNeedUpdate = true;
-
-        component.geometry.computeVertexNormals();
-    }
-*/
-/*
-    public render() {
-        console.log("render");
-
-        var time = performance.now() * 0.001;
-
-        this.water.material.uniforms.time.value += 1.0 / 60.0;
-        this.water.material.uniforms.size.value = this.parameters.size;
-        this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
-        this.water.material.uniforms.alpha.value = this.parameters.alpha;
-
-        //this.makeModifications(this);
-
-        //this.updateOcean();
-
-        this.renderer.render(this.scene, this.camera);
-
-        //this.renderer.renderLists.dispose();
-
-        setTimeout(() => {
-            requestAnimationFrame(this.render)
-        }, 300);
-
-    }
-    */
-/*
-    lastTime = (new Date()).getTime();
-
-    public updateOcean() {
-        if(this.ms_Ocean) {
-            var currentTime = new Date().getTime();
-            this.ms_Ocean.deltaTime = (currentTime - this.lastTime) / 1000 || 0.0;
-            this.lastTime = currentTime;
-            this.ms_Ocean.render(this.ms_Ocean.deltaTime);
-            this.ms_Ocean.overrideMaterial = this.ms_Ocean.materialOcean;
-            console.log(this.ms_Ocean.changed)
-            if (this.ms_Ocean.changed) {
-                this.ms_Ocean.materialOcean.uniforms.u_size.value = this.ms_Ocean.size;
-                this.ms_Ocean.materialOcean.uniforms.u_sunDirection.value.set( this.ms_Ocean.sunDirectionX, this.ms_Ocean.sunDirectionY, this.ms_Ocean.sunDirectionZ );
-                console.log(this.ms_Ocean.materialOcean.uniforms.u_sunDirection)
-                this.ms_Ocean.materialOcean.uniforms.u_exposure.value = this.ms_Ocean.exposure;
-                this.ms_Ocean.changed = false;
-            }
-            this.ms_Ocean.materialOcean.uniforms.u_normalMap.value = this.ms_Ocean.normalMapFramebuffer.texture;
-            this.ms_Ocean.materialOcean.uniforms.u_displacementMap.value = this.ms_Ocean.displacementMapFramebuffer.texture;
-            this.ms_Ocean.materialOcean.uniforms.u_projectionMatrix.value = this.camera.projectionMatrix;
-            this.ms_Ocean.materialOcean.uniforms.u_viewMatrix.value = this.camera.matrixWorldInverse;
-            this.ms_Ocean.materialOcean.uniforms.u_cameraPosition.value = this.camera.position;
-            this.ms_Ocean.materialOcean.depthTest = true;
-            //this.ms_Scene.__lights[1].position.x = this.ms_Scene.__lights[1].position.x + 0.01;
-            // rotar una llum amb una esfera a traves del mar com si fos el sol
-        }
-    }
-
-    public createOcean() {
-
-        //var types = { 'float': 'half-float', 'half-float': 'float' };
-        //var hash = document.location.hash.substr( 1 );
-        //if (!(hash in types)) hash = 'half-float';
-        let hash = 'half-float';
-
-        var gsize = 512;
-        var res = 1024;
-        var gres = res / 2;
-        var origx = -gsize / 2;
-        var origz = -gsize / 2;
-        this.ms_Ocean = new THREE.Ocean(this.renderer, this.camera, this.scene,
-            {
-                USE_HALF_FLOAT : hash === 'half-float',
-                INITIAL_SIZE : 256.0,
-                INITIAL_WIND : [10.0, 10.0],
-                INITIAL_CHOPPINESS : 1.5,
-                CLEAR_COLOR : [1.0, 1.0, 1.0, 0.0],
-                GEOMETRY_ORIGIN : [origx, origz],
-                SUN_DIRECTION : [-1.0, 1.0, 1.0],
-                OCEAN_COLOR: new THREE.Vector3(0.004, 0.016, 0.047),
-                SKY_COLOR: new THREE.Vector3(3.2, 9.6, 12.8),
-                EXPOSURE : 0.35,
-                GEOMETRY_RESOLUTION: gres,
-                GEOMETRY_SIZE : gsize,
-                RESOLUTION : res
-            });
-            this.ms_Ocean.materialOcean.uniforms.u_projectionMatrix = { value: this.camera.projectionMatrix };
-            this.ms_Ocean.materialOcean.uniforms.u_viewMatrix = { value: this.camera.matrixWorldInverse };
-            this.ms_Ocean.materialOcean.uniforms.u_cameraPosition = { value: this.camera.position };
-            console.log(this.ms_Ocean.oceanMesh);
-            
-            this.scene.add(this.ms_Ocean.oceanMesh);
-
-            var gui = new dat.GUI();
-            var c1 = gui.add(this.ms_Ocean, "size",100, 5000);
-            c1.onChange(function(v) {
-                this.object.size = v;
-                this.object.changed = true;
-            });
-            var c2 = gui.add(this.ms_Ocean, "choppiness", 0.1, 4);
-            c2.onChange(function (v) {
-                this.object.choppiness = v;
-                this.object.changed = true;
-            });
-            var c3 = gui.add(this.ms_Ocean, "windX",-15, 15);
-            c3.onChange(function (v) {
-                this.object.windX = v;
-                this.object.changed = true;
-            });
-            var c4 = gui.add(this.ms_Ocean, "windY", -15, 15);
-            c4.onChange(function (v) {
-                this.object.windY = v;
-                this.object.changed = true;
-            });
-            var c5 = gui.add(this.ms_Ocean, "sunDirectionX", -1.0, 1.0);
-            c5.onChange(function (v) {
-                this.object.sunDirectionX = v;
-                this.object.changed = true;
-            });
-            var c6 = gui.add(this.ms_Ocean, "sunDirectionY", -1.0, 1.0);
-            c6.onChange(function (v) {
-                this.object.sunDirectionY = v;
-                this.object.changed = true;
-            });
-            var c7 = gui.add(this.ms_Ocean, "sunDirectionZ", -1.0, 1.0);
-            c7.onChange(function (v) {
-                this.object.sunDirectionZ = v;
-                this.object.changed = true;
-            });
-            var c8 = gui.add(this.ms_Ocean, "exposure", 0.0, 0.5);
-            c8.onChange(function (v) {
-                this.object.exposure = v;
-                this.object.changed = true;
-            });
-    }
-*/
-/*
-    renderControls() {
-        this.renderer.render( this.scene, this.camera );
-    }
-
-    public addControls() {
-        this.controls = new THREE.OrbitControls(this.camera);
-        this.controls.rotateSpeed = 1.0;
-        this.controls.zoomSpeed = 1.2;
-        this.controls.addEventListener('change', this.renderControls);
-
-    }
-*/
     /* EVENTS */
 
     public onMouseMove(event: MouseEvent) {
@@ -516,6 +228,7 @@ funciona: fa una font
             }
             if(trobat) {
                 //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
+                let myWindow = window.open("https://davidmartinezros.com/main", "", "width=100, height=100");
                 return;
             }
                  
@@ -573,12 +286,12 @@ funciona: fa una font
                 goTween.onComplete.bind(this, this.onCameraAnimComplete)();
                 goTween.start();
 
-/*
+
                 this.controls.target.set( 
                     i.position.x,
                     i.position.y,
                     i.position.z + 10 );
-*/
+
                 //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
 
                 //if(i.material)  i.material.color = null;
@@ -609,13 +322,12 @@ funciona: fa una font
 
     @HostListener('window:resize', ['$event'])
     public onResize(event: Event) {
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        console.log("onResize: " + this.canvas.clientWidth + ", " + this.canvas.clientHeight);
+
+        console.log("onResize: " + (window.innerWidth - 16) + ", "  + (window.innerHeight - 16));
 
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        this.renderer.setSize(window.innerWidth - 16, window.innerHeight - 16);
         this.render();
     }
 
@@ -624,34 +336,6 @@ funciona: fa una font
         console.log("onKeyPress: " + event.key);
     }
 
-    light;
-    stats;
-    water;
-    parameters = {
-        oceanSide: 2000,
-        size: 1.0,
-        distortionScale: 3.7,
-        alpha: 1.0,
-        sizeRain: 2,
-        transparentRain: true,
-        sizeAttenuationRain: true,
-        opacityRain: 0.6,
-        colorRain: 0xffffff
-
-    };
-    manager: THREE.LoadingManager;
-    loaderTextures: THREE.TextureLoader;
-
-    cloud;
-
-    textureRain;
-
-    sunSphere;
-
-    sky;
-
-    //engine;
-
     ngAfterViewInit() {
         this.animate();
     }
@@ -659,47 +343,88 @@ funciona: fa una font
     /* LIFECYCLE */
     ngOnInit() {
         //
-        this.renderer = new THREE.WebGLRenderer({
-            canvas: this.canvas,
-            antialias: true
-        });
-        this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.renderer.setSize( window.innerWidth, window.innerHeight );
-        this.renderer.shadowMap.enabled = true;
-        //
-        this.scene = new THREE.Scene();
-        //this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
-        //
-        this.camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 1, 2000000 );
-        this.camera.position.set( 30, 30, 100 );
-/*
-        this.camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 100, 2000000 );
-		this.camera.position.set( 0, 100, 2000 );
-*/
-        //
-        this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
-        this.light.position.set( - 30, 30, 30 );
-        this.light.castShadow = true;
-        this.light.shadow.camera.top = 45;
-        this.light.shadow.camera.right = 40;
-        this.light.shadow.camera.left = this.light.shadow.camera.bottom = -40;
-        this.light.shadow.camera.near = 1;
-        this.light.shadow.camera.far = 200;
-        this.scene.add( this.light );
-        var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
-        this.scene.add( ambientLight );
-        //
         this.manager = new THREE.LoadingManager();
         this.manager.onProgress = function ( item, loaded, total ) {
             console.log( item, loaded, total );
         };
         this.loaderTextures = new THREE.TextureLoader( this.manager );
         //
-
+        this.startRendering();
+        //
+        this.createScene();
+        //
+        this.createCamera();
+        //
+        this.createLight();
         // Add Sky
+        this.createSky();
+        //
+        this.setWater();
+
+        //this.loadIsland();
+
+        this.loadTerrain();
+
+        //this.loadPalmTree();
+
+        //this.loadTree();
+
+        this.loadDolphin1();
+
+        this.loadDolphin2();
+
+        this.loadDolphin3();
+
+        this.loadBird1();
+
+        this.loadBird2();
+
+        this.loadBird3();
+
+        this.loadPenguin();
+
+        this.loadBear();
+
+        this.initParticles();
+
+        this.initParticlesClouds();
+        //
+        this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
+        this.controls.maxPolarAngle = Math.PI * 0.495;
+        //this.controls.target.set( 0, 10, 0 );
+        this.controls.enablePan = false;
+        this.controls.minDistance = 40.0;
+        this.controls.maxDistance = 200.0;
+
+        var gui = new dat.GUI();
+        gui.add( this.parameters, 'distortionScale', 0, 8, 0.1 );
+        gui.add( this.parameters, 'size', 0.1, 10, 0.1 );
+        gui.add( this.parameters, 'alpha', 0.9, 1, .001 );
+        //gui.add( this.rainControls, 'sizeRain', 0, 20).onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'transparentRain').onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'opacityRain', 0, 1).onChange(this.rainControls.redraw);;
+        //gui.addColor( this.rainControls, 'colorRain').onChange(this.rainControls.redraw);;
+        //gui.add( this.rainControls, 'sizeAttenuationRain').onChange(this.rainControls.redraw);
+    }
+
+    onProgress = function ( xhr ) {
+        if ( xhr.lengthComputable ) {
+            var percentComplete = xhr.loaded / xhr.total * 100;
+            console.log( Math.round(percentComplete) + '% downloaded' );
+        }
+    };
+    onError = function ( xhr ) {
+        console.log(xhr);
+    };
+
+    private createSky() {
+        // per fer el sol
+        // https://github.com/mrdoob/three.js/blob/master/examples/webgl_shaders_sky.html
+        //
         this.sky = new THREE.Sky();
         this.sky.scale.setScalar( 450000 );
         this.scene.add( this.sky );
+
         // Add Sun Helper
         this.sunSphere = new THREE.Mesh(
             new THREE.SphereBufferGeometry( 20000, 16, 8 ),
@@ -708,7 +433,7 @@ funciona: fa una font
         this.sunSphere.position.y = - 700000;
         this.sunSphere.visible = false;
         this.scene.add( this.sunSphere );
-        /// GUI
+
         var effectController  = {
             turbidity: 10,
             rayleigh: 2,
@@ -740,214 +465,6 @@ funciona: fa una font
             uniforms.sunPosition.value.copy( this.sunSphere.position );
             this.renderer.render( this.scene, this.camera );
         }
-/*
-        var gui = new dat.GUI();
-        gui.add( effectController, "turbidity", 1.0, 20.0, 0.1 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "rayleigh", 0.0, 4, 0.001 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "mieCoefficient", 0.0, 0.1, 0.001 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "mieDirectionalG", 0.0, 1, 0.001 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "luminance", 0.0, 2 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "inclination", 0, 1, 0.0001 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "azimuth", 0, 1, 0.0001 ).onChange( guiChanged.bind(this) );
-        gui.add( effectController, "sun" ).onChange( guiChanged.bind(this) );
-        guiChanged.bind(this);
-*/
-        // Add Sky
-        /*
-        let sky = new THREE.Sky();
-        sky.scale.setScalar( 450000 );
-        scene.add( sky );
-        */      
-        // Add Sun Helper
-        
-        // per fer el sol
-        // https://github.com/mrdoob/three.js/blob/master/examples/webgl_shaders_sky.html
-        //
-        /* 
-        let sunSphere = new THREE.Mesh(
-            new THREE.SphereBufferGeometry( 20000, 16, 8 ),
-            new THREE.MeshBasicMaterial( { color: 0xffffff } )
-        );
-        sunSphere.position.y = - 700000;
-        sunSphere.visible = false;
-        this.scene.add( sunSphere );
-
-        var distance = 400000;
-        var inclination = 0.49;
-        var azimuth =  0.75;
-
-        var theta = Math.PI * ( inclination - 0.5 );
-        var phi = 2 * Math.PI * ( azimuth - 0.5 );
-
-        sunSphere.position.x = distance * Math.cos( phi );
-        sunSphere.position.y = distance * Math.sin( phi ) * Math.sin( theta );
-        sunSphere.position.z = distance * Math.sin( phi ) * Math.cos( theta );
-        sunSphere.visible = true;
-        */
-        this.setWater();
-
-        //this.setSkybox();
-
-        //this.loadIsland();
-
-        this.loadTerrain();
-
-        //this.loadPalmTree();
-
-        //this.loadTree();
-
-        this.loadDolphin1();
-
-        this.loadDolphin2();
-
-        this.loadDolphin3();
-
-        this.loadBird1();
-
-        this.loadBird2();
-
-        this.loadBird3();
-
-        this.loadPenguin();
-
-        this.loadBear();
-
-        this.initParticles();
-
-        this.initParticlesClouds();
-
-        //this.createPointCloud(this.parameters.sizeRain, this.parameters.transparentRain, this.parameters.opacityRain, this.parameters.sizeAttenuationRain, this.parameters.colorRain);
-
-        //
-        this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
-        this.controls.maxPolarAngle = Math.PI * 0.495;
-        //this.controls.target.set( 0, 10, 0 );
-        this.controls.enablePan = false;
-        this.controls.minDistance = 40.0;
-        this.controls.maxDistance = 200.0;
-        //this.camera.lookAt( this.controls.target );
-        //
-        //this.stats = new Stats();
-        //container.appendChild( this.stats.dom );
-        //
-
-
-
-        //rain
-        /*
-        var settings = {
-            positionStyle    : Type.CUBE,
-            positionBase     : new THREE.Vector3( 0, 0, 0 ),
-            positionSpread   : new THREE.Vector3( 200, 200, 500 ),
-
-            velocityStyle    : Type.CUBE,
-            velocityBase     : new THREE.Vector3( 0, 0, -400 ),
-            velocitySpread   : new THREE.Vector3( 10, 50, 10 ), 
-            accelerationBase : new THREE.Vector3( 0, -10, 0 ),
-            
-            particleTexture : this.loaderTextures.load('assets/textures/raindrop-3.png'),
-
-            sizeBase    : 4.0,
-            sizeSpread  : 2.0,
-            colorBase   : new THREE.Vector3(0.66, 1.0, 0.7), // H,S,L
-            colorSpread : new THREE.Vector3(0.00, 0.0, 0.2),
-            opacityBase : 0.6,
-
-            particlesPerSecond : 3000,
-            particleDeathAge   : 1.0,  
-            emitterDeathAge    : 60
-        };
-   
-        this.engine = new ParticleEngine();
-        this.engine.setValues( settings );
-        this.engine.initialize(this.scene);
-*/
-
-
-/*
-
-        this.textureRain = this.loaderTextures.load('assets/textures/raindrop-3.png');
-
-        let parent = this;
-        this.rainControls = new function () {
-            this.sizeRain = 6;
-            this.transparentRain = true;
-            this.opacityRain = 0.6;
-            this.colorRain = 0xffffff;
-            this.sizeAttenuationRain = true;
-            
-            this.redraw = function () {
-                if(parent.scene.getObjectByName("particles1")) {
-                    parent.scene.remove(parent.scene.getObjectByName("particles1"));
-                }
-                parent.createPointCloud("particles1", parent.rainControls.sizeRain, parent.rainControls.transparentRain, parent.rainControls.opacityRain, parent.rainControls.sizeAttenuationRain, parent.rainControls.colorRain);
-            };
-        };
-
-        this.rainControls.redraw();
-*/
-        var gui = new dat.GUI();
-        gui.add( this.parameters, 'distortionScale', 0, 8, 0.1 );
-        gui.add( this.parameters, 'size', 0.1, 10, 0.1 );
-        gui.add( this.parameters, 'alpha', 0.9, 1, .001 );
-        //gui.add( this.rainControls, 'sizeRain', 0, 20).onChange(this.rainControls.redraw);;
-        //gui.add( this.rainControls, 'transparentRain').onChange(this.rainControls.redraw);;
-        //gui.add( this.rainControls, 'opacityRain', 0, 1).onChange(this.rainControls.redraw);;
-        //gui.addColor( this.rainControls, 'colorRain').onChange(this.rainControls.redraw);;
-        //gui.add( this.rainControls, 'sizeAttenuationRain').onChange(this.rainControls.redraw);
-        //
-        //window.addEventListener( 'resize', onWindowResize, false );
-    }
-
-    rainControls;
-
-    onProgress = function ( xhr ) {
-        if ( xhr.lengthComputable ) {
-            var percentComplete = xhr.loaded / xhr.total * 100;
-            console.log( Math.round(percentComplete) + '% downloaded' );
-        }
-    };
-    onError = function ( xhr ) {
-        console.log(xhr);
-    };
-
-    createPointCloud(name, size, transparent, opacity, sizeAttenuation, color) {
-        var geom = new THREE.Geometry();
-        
-        var material = new THREE.PointsMaterial({
-            size: size,
-            transparent: transparent,
-            opacity: opacity,
-            map: this.textureRain,
-            blending: THREE.AdditiveBlending,
-            sizeAttenuation: sizeAttenuation,
-            color: color
-        });
-        /*
-        var material = new THREE.LineDashedMaterial( {
-            color: 0xffffff,
-            linewidth: 1,
-            scale: 1,
-            dashSize: 3,
-            gapSize: 1,
-            lights: true
-        } );
-        */
-        var range = 2000;
-        for (var i = 0; i < 1500; i++) {
-            var particle = new THREE.Vector3(
-                    Math.random() * range - range / 2,
-                    Math.random() * range * 1.5,
-                    Math.random() * range - range / 2);
-            particle.velocityY = 0.1 + Math.random() / 20;
-            particle.velocityX = (Math.random() - 0.5) / 3;
-            geom.vertices.push(particle);
-        }
-        this.cloud = new THREE.Points(geom, material);
-        //this.cloud = new THREE.Line(geom, material);
-        this.cloud.sortParticles = true;
-        this.cloud.name = name;
-        this.scene.add(this.cloud);
     }
 
     loadTerrain() {
@@ -964,19 +481,20 @@ funciona: fa una font
             } );
 
             let obj = object;
-            obj.position.x = 0;
-            obj.position.y = -30;
-            obj.position.z = -600;
+            obj.position.x = 200;
+            obj.position.y = -40;
+            obj.position.z = -1300;
             obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = - Math.PI / 2;
-            obj.scale.x = 16;
-            obj.scale.y = 16;
-            obj.scale.z = 16;
+            obj.rotation.z = Math.PI / 2;
+            //obj.rotation.y = - Math.PI / 2;
+            obj.scale.x = 32;
+            obj.scale.y = 32;
+            obj.scale.z = 32;
 
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
-
+    /*
     loadIsland() {
         var geometry = new THREE.CylinderGeometry( 50, 50, 10, 32 );
         var textureSand = this.loaderTextures.load('assets/island/sand-texture.jpg');
@@ -987,7 +505,7 @@ funciona: fa una font
         cylinder.position.y = - 3;
         this.scene.add( cylinder );
     }
-
+    */
     loadDolphin1() {
         var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
@@ -1042,6 +560,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+
     loadDolphin3() {
         var textureDolphin = this.loaderTextures.load('assets/dolphin/Dolphin-texture6.jpg');
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
@@ -1067,6 +586,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+
     loadBird1() {
         var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
         var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
@@ -1093,6 +613,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+
     loadBird2() {
         var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
         var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
@@ -1119,6 +640,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+
     loadBird3() {
         var textureBird = this.loaderTextures.load('assets/bird/bird-texture.jpg');
         var materialBird = new THREE.MeshLambertMaterial({map: textureBird, needsUpdate: true});
@@ -1145,6 +667,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+    /*
     loadPalmTree() {
         var texturePalmTree = this.loaderTextures.load( 'assets/palm-tree/Bottom_T.jpg' );
         var materialPalmTree = new THREE.MeshLambertMaterial({map: texturePalmTree, needsUpdate: true});
@@ -1170,6 +693,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+    */
     loadBear() {
         var mtlLoader = new THREE.MTLLoader();
         mtlLoader.setPath( 'assets/bear/' );
@@ -1194,6 +718,7 @@ funciona: fa una font
             }, parent.onProgress, parent.onError );
         });
     }
+    /*
     loadTree() {
 
         var mtlLoader = new THREE.MTLLoader();
@@ -1215,6 +740,7 @@ funciona: fa una font
             }, parent.onProgress, parent.onError );
         });
     }
+    */
     loadPenguin() {
         var normalPenguin = this.loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
         var texturePenguin = this.loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
@@ -1241,6 +767,7 @@ funciona: fa una font
             parent.scene.add( obj );
         }, this.onProgress, this.onError );
     }
+
     setWater() {
         var waterGeometry = new THREE.PlaneBufferGeometry( this.parameters.oceanSide * 5, this.parameters.oceanSide * 5 );
         this.water = new THREE.Water(
@@ -1263,40 +790,11 @@ funciona: fa una font
         this.water.receiveShadow = true;
         this.scene.add( this.water );
     }
-    setSkybox() {
-        var cubeTextureLoader = new THREE.CubeTextureLoader();
-        cubeTextureLoader.setPath( 'assets/textures/cube/skyboxsun25deg/' );
-        let cubeMap = cubeTextureLoader.load( [
-            'px.jpg', 'nx.jpg',
-            'py.jpg', 'ny.jpg',
-            'pz.jpg', 'nz.jpg',
-        ] );
-        var cubeShader = THREE.ShaderLib[ 'cube' ];
-        cubeShader.uniforms[ 'tCube' ].value = cubeMap;
-        var skyBoxMaterial = new THREE.ShaderMaterial( {
-            fragmentShader: cubeShader.fragmentShader,
-            vertexShader: cubeShader.vertexShader,
-            uniforms: cubeShader.uniforms,
-            side: THREE.BackSide
-        } );
-        var skyBoxGeometry = new THREE.BoxBufferGeometry(
-            this.parameters.oceanSide * 5 + 100,
-            this.parameters.oceanSide * 5 + 100,
-            this.parameters.oceanSide * 5 + 100 );
-        var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-        this.scene.add( skyBox );
-    }
 
     animate() {
-        //console.log("render");
         requestAnimationFrame( this.animate );
         this.render();
-        //stats.update();
     }
-
-    dtIncrement: number = 0;
-
-    esNegatiu: boolean = false;
 
     render() {
         //console.log(this.clock.getElapsedTime())
@@ -1322,24 +820,17 @@ funciona: fa una font
             let dt = this.clock.getElapsedTime();
             if(dt != 0 && dt%range == 0) {
                 this.esNegatiu = !this.esNegatiu;
-                //console.log('incrementem')
                 this.dtIncrement += range;
             }
             dt = dt - this.dtIncrement;
             if(this.esNegatiu) {
                 dt = (-1.0)*dt;
             }
-            //console.log(dt)
+            //
             let percent = (dt - 0.0) / (range - 0.0);
-            //console.log(percent);
-            //let inclination = percent * (0.5 - 0.0) + 0.0;
-            //let inclination = 0.49;
             let inclination = percent * (0.5 - 0.25) + 0.25;
             let azimuth  = percent * (0.5 - 0.0) + 0.0;
-            //console.log('inclination:' + inclination)
-            //console.log('azimuth:' + azimuth)
-            //let inclination = 0.50 - x; // on x va de 0 a 0.50 i de 0.50 a 0
-            //let azimuth = 0.0 + y; // on y va de 0.0 a 0.50
+            //
             var uniforms = this.sky.material.uniforms;
             var theta = Math.PI * ( inclination - 0.5 );
             var phi = 2 * Math.PI * ( azimuth - 0.5 );
@@ -1349,33 +840,10 @@ funciona: fa una font
             this.sunSphere.visible = true;
             uniforms.sunPosition.value.copy( this.sunSphere.position );
         }
-        
-
-        //console.log(this.clock.getDelta())
-
-        //this.light.position.set( - 30, 30, 30 );
-
-        //this.engine.update( 0.01 * 0.5 );
-
-        //setTimeout(this.renderRain, 3000);
 
         TWEEN.update(this.clock.getDelta());
 
         this.renderer.render( this.scene, this.camera );
-    }
-
-    renderRain() {
-        if(this.cloud) {
-            var vertices = this.cloud.geometry.vertices;
-            vertices.forEach(function (v) {
-                v.y = v.y - (v.velocityY);
-                v.x = v.x - (v.velocityX);
-                if (v.y <= 0) v.y = 60;
-                if (v.x <= -20 || v.x >= 20) v.velocityX = v.velocityX * -1;
-            });
-        }
-        
-        this.rainControls.redraw();
     }
 
 }
