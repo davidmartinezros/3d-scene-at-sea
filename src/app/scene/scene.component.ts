@@ -10,6 +10,7 @@ import "three/examples/js/controls/OrbitControls";
 import "three/examples/js/loaders/TDSLoader";
 import "three/examples/js/loaders/OBJLoader";
 import "three/examples/js/loaders/MTLLoader";
+import "three/examples/js/loaders/STLLoader";
 import "three/examples/js/objects/Sky";
 
 //import * as ParticleEngine from './js/ParticleEngine';
@@ -94,7 +95,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     private createScene() {
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
+        //this.scene.fog = new THREE.FogExp2( 0xaabbbb, 0.002 );
         //this.scene.add(new THREE.AxisHelper(200));
     }
 
@@ -151,8 +152,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 value: 2,
             },
             position: {
-                value: new THREE.Vector3( 0, 200, 0 ),
-                spread: new THREE.Vector3( 600, 300, 600 )
+                value: new THREE.Vector3( 0, 400, 0 ),
+                spread: new THREE.Vector3( 2000, 300, 2000 )
             },
             velocity: {
                 value: new THREE.Vector3( 0, 0, 30 )
@@ -196,12 +197,12 @@ export class SceneComponent implements OnInit, AfterViewInit {
             maxAge: 2,
             position: {
                 value: new THREE.Vector3(0, 0, 0),
-                spread: new THREE.Vector3( 300, 300, 300 )
+                spread: new THREE.Vector3( 1000, 300, 1000 )
             },
             velocity: {
                 value: new THREE.Vector3( 0, (-1.0)*this.getRandomNumber(30), 0 )
             },
-            particleCount: 30000,
+            particleCount: 40000,
             isStatic: false
         });
         this.particleGroupSnow.addEmitter( this.emitterSnow );
@@ -267,42 +268,35 @@ export class SceneComponent implements OnInit, AfterViewInit {
                     .interpolation(TWEEN.Interpolation.CatmullRom)
                     .easing(TWEEN.Easing.Quintic.InOut)
                     .start();
-                    /*
-                new TWEEN.Tween(this.controls.target).to({
-                    x: i.position.x,
-                    y: i.position.y,
-                    z: i.position.z}, 3000)
-                    .onUpdate(function () {
-                        this.controls.target.position.x = i.position.x;
-                        this.controls.target.position.y = i.position.y;
-                        this.controls.target.position.z = i.position.z;
-                    }).start();
-                    */
 
                 var goTween = new TWEEN.Tween(this.camera.position)
                     .to({
-                        x: i.position.x,
-                        y: i.position.y,
-                        z: i.position.z + 10
+                        x: i.position.x + 30,
+                        y: i.position.y + 30,
+                        z: i.position.z + 100
                     }, 4000)
                     .interpolation(TWEEN.Interpolation.CatmullRom)
                     .easing(TWEEN.Easing.Quintic.InOut);
 
                 console.log(goTween)
-                goTween.start(this.clock.getDelta());
+                goTween.start();
                 goTween.onComplete(function() {
                     console.log('done!');
                 });
-                
-                goTween.onUpdate.bind(this, this.onCameraAnimUpdate)();
-                goTween.onComplete.bind(this, this.onCameraAnimComplete)();
-                goTween.start();
-
 
                 this.controls.target.set( 
                     i.position.x,
                     i.position.y,
-                    i.position.z + 10 );
+                    i.position.z );
+
+                this.camera.position.set(
+                    i.position.x + 30,
+                    i.position.y + 30,
+                    i.position.z + 100 );
+
+                this.camera.lookAt( i.position );
+
+                this.render();
 
                 //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
 
@@ -314,7 +308,6 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 return false;
             }
         }
-        this.render();
     }
 
     private findAllObjects(pred: THREE.Object3D[], parent: THREE.Object3D) {
@@ -360,6 +353,10 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.createCamera();
         this.createLights();
 
+        // Init Options
+        this.initOptionsEvents();
+        this.initOptionsParameters();
+
         // Create Scene
         this.createSky();
         this.createWater();
@@ -373,14 +370,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.loadBirds();
         this.loadPenguin();
         //this.loadBear();
+        this.loadPolarBear();
 
         // Init Snow and Clouds Particles
         this.initParticlesSnow();
         this.initParticlesClouds();
-
-        // Init Options
-        this.initOptionsEvents();
-        this.initOptionsParameters();
     }
 
     onProgress = function ( xhr ) {
@@ -396,7 +390,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     private initOptionsEvents() {
         this.controls = new THREE.OrbitControls( this.camera, this.renderer.domElement );
         this.controls.maxPolarAngle = Math.PI * 0.495;
-        this.controls.target.set( 0, 0, 0 );
+        //this.controls.target.set( 0, 0, 0 );
         this.controls.enablePan = true;
         this.controls.minDistance = 40.0;
         this.controls.maxDistance = 200.0;
@@ -614,6 +608,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         }, this.onProgress, this.onError );
     }
     */
+    /*
     loadBear() {
         var mtlLoader = new THREE.MTLLoader();
         mtlLoader.setPath( 'assets/bear/' );
@@ -637,6 +632,24 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 parent.scene.add( obj );
             }, parent.onProgress, parent.onError );
         });
+    }
+    */
+    loadPolarBear() {
+        var textureBear = this.loaderTextures.load('assets/Polar_Bear/texture.jpg');
+        var materialBear = new THREE.MeshLambertMaterial({map: textureBear, needsUpdate: true});
+        var loader = new THREE.STLLoader( this.manager );
+        let parent = this;
+        loader.load( 'assets/Polar_Bear/polar_bear.stl', function ( geometry ) {
+            //var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
+            var mesh = new THREE.Mesh( geometry, materialBear );
+            mesh.name = "bear";
+            mesh.position.set( 60, 42, -210 );
+            mesh.rotation.set( 0, - Math.PI / 2, 0 );
+            mesh.scale.set( 0.6, 0.6, 0.6 );
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            parent.scene.add( mesh );
+        }, parent.onProgress, parent.onError );
     }
     /*
     loadTree() {
@@ -676,9 +689,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
             
             let obj = object;
             obj.name = "penguin";
-            obj.position.x = - 180;
-            obj.position.z = - 180;
-            obj.position.y = 5;
+            obj.position.x = - 183;
+            obj.position.z = - 205;
+            obj.position.y = 6;
             obj.rotation.y = 90* Math.PI / 180;
             obj.scale.x = 0.3;
             obj.scale.y = 0.3;
@@ -727,15 +740,28 @@ export class SceneComponent implements OnInit, AfterViewInit {
             this.water.material.uniforms.distortionScale.value = this.parameters.distortionScale;
             this.water.material.uniforms.alpha.value = this.parameters.alpha;
         }
+        /*
         if(this.controls.target) {
+            console.log(this.controls.target)
             if(this.emitterClouds) {
-                this.emitterClouds.position.value = this.controls.target;
+                this.emitterClouds.position.value.x = this.controls.target.x;
+                this.emitterClouds.position.value.z = this.controls.target.z;
+                if(!this.emitterSnow.position.value.y) {
+                    this.emitterSnow.position.value.y = 0;
+                }
+                console.log(this.emitterClouds.position);
             }
 
             if(this.emitterSnow) {
-                this.emitterSnow.position.value = this.controls.target;
+                this.emitterSnow.position.value.x = this.controls.target.x;
+                this.emitterSnow.position.value.z = this.controls.target.z;
+                if(!this.emitterSnow.position.value.y) {
+                    this.emitterSnow.position.value.y = 0;
+                }
+                console.log(this.emitterSnow.position);
             }
         }
+        */
         if(this.particleGroupSnow) {
             this.particleGroupSnow.tick( this.clock.getDelta() );
         }
