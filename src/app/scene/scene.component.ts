@@ -115,7 +115,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     private createCamera() {
-        this.camera = new THREE.PerspectiveCamera( 55, (window.innerWidth - 16)/(window.innerHeight - 16), 1, 2000000 );
+        this.camera = new THREE.PerspectiveCamera( 55, (window.innerWidth - 6)/(window.innerHeight - 6), 1, 2000000 );
         this.camera.position.set( 30, 30, 100 );
     }
 
@@ -125,16 +125,16 @@ export class SceneComponent implements OnInit, AfterViewInit {
             antialias: true
         });
         this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.renderer.setSize( window.innerWidth - 16, window.innerHeight - 16 );
+        this.renderer.setSize( window.innerWidth - 6, window.innerHeight - 6 );
         this.renderer.shadowMap.enabled = true;
     }
 
     private getAspectRatio(): number {
-        let height = window.innerHeight - 16;
+        let height = window.innerHeight - 6;
         if (height === 0) {
             return 0;
         }
-        return (window.innerWidth - 16)/(window.innerHeight - 16);
+        return (window.innerWidth - 6)/(window.innerHeight - 6);
     }
 
     // Creacio de nuvols
@@ -328,11 +328,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
     @HostListener('window:resize', ['$event'])
     public onResize(event: Event) {
 
-        console.log("onResize: " + (window.innerWidth - 16) + ", "  + (window.innerHeight - 16));
+        console.log("onResize: " + (window.innerWidth - 6) + ", "  + (window.innerHeight - 6));
 
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth - 16, window.innerHeight - 16);
+        this.renderer.setSize(window.innerWidth - 6, window.innerHeight - 6);
         this.render();
     }
 
@@ -355,7 +355,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
         // Init Options
         this.initOptionsEvents();
-        this.initOptionsParameters();
+        //this.initOptionsParameters();
 
         // Create Scene
         this.createSky();
