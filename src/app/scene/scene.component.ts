@@ -233,10 +233,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
         console.log("Scene has " + obj.length + " objects");
         console.log(intersects.length + " intersected objects found")
         let trobat = false;
+        let parent = this;
         intersects.forEach((i) => {
             console.log(i.object); // do what you want to do with object
             //i.object.position.y = i.object.position.y + 1;
-            if(elementTrobat.bind(this)(i.object)) {
+            if(parent.elementTrobat(i.object)) {
                 trobat = true;
             }
             if(trobat) {
@@ -246,68 +247,78 @@ export class SceneComponent implements OnInit, AfterViewInit {
             }
                  
         });
+    }
 
-        function elementTrobat(i) {
-            if((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear")) {
-                //this.camera.lookAt( i.position );
-                //this.camera.position.set(i.position.x + 100, i.position.y + 50, i.position.z + 100);
-                
-                //console.log(this.controls);
-                //console.log(this.camera);
-                
-                var lookAtVector = new THREE.Vector3(0, 0, 1);
-                lookAtVector.applyQuaternion(i.quaternion);
-                console.log(lookAtVector);
-                
-                var rotateTween = new TWEEN.Tween(this.controls.target)
-                    .to({
-                        x: i.position.x,
-                        y: i.position.y,
-                        z: i.position.z
-                    }, 4000)
-                    .interpolation(TWEEN.Interpolation.CatmullRom)
-                    .easing(TWEEN.Easing.Quintic.InOut)
-                    .start();
+    private elementTrobat(i) {
+        if((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear")) {
+            
+            this.ferTweenElement(i);
 
-                var goTween = new TWEEN.Tween(this.camera.position)
-                    .to({
-                        x: i.position.x + 30,
-                        y: i.position.y + 30,
-                        z: i.position.z + 100
-                    }, 4000)
-                    .interpolation(TWEEN.Interpolation.CatmullRom)
-                    .easing(TWEEN.Easing.Quintic.InOut);
+            this.render();
 
-                console.log(goTween)
-                goTween.start();
-                goTween.onComplete(function() {
-                    console.log('done!');
-                });
+            //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
 
-                this.controls.target.set( 
-                    i.position.x,
-                    i.position.y,
-                    i.position.z );
-
-                this.camera.position.set(
-                    i.position.x + 30,
-                    i.position.y + 30,
-                    i.position.z + 100 );
-
-                this.camera.lookAt( i.position );
-
-                this.render();
-
-                //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
-
-                //if(i.material)  i.material.color = null;
-                return true;
-            } else if(i.parent && i.parent != null) {
-                return elementTrobat.bind(this)(i.parent);
-            } else {
-                return false;
-            }
+            //if(i.material)  i.material.color = null;
+            return true;
+        } else if(i.parent && i.parent != null) {
+            return this.elementTrobat(i.parent);
+        } else {
+            return false;
         }
+    }
+
+    private ferTweenElement(object) {
+
+        let parent = this;
+        
+        var coords1 = {
+            x: this.camera.position.x,
+            y: this.camera.position.y,
+            z: this.camera.position.z
+        };
+        
+        var tween1 = new TWEEN.Tween(coords1) // Create a new tween that modifies 'coords1'.
+            .to({
+                x: object.position.x + 30,
+                y: object.position.y + 30,
+                z: object.position.z + 100
+            }, 4000)
+            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+            .onUpdate(function() { // Called after tween.js updates 'coords'.
+                parent.camera.position.x = coords1.x;
+                parent.camera.position.y = coords1.y;
+                parent.camera.position.z = coords1.z;
+                parent.camera.lookAt(object.position);
+            })
+            .start(); // Start the tween immediately.
+
+        tween1.onComplete(function() {
+            console.log("complete1");
+        });
+
+        var coords2 = {
+            x: this.controls.target.x,
+            y: this.controls.target.y,
+            z: this.controls.target.z
+        };
+
+        var tween2 = new TWEEN.Tween(coords2) // Create a new tween that modifies 'coords2'.
+            .to({
+                x: object.position.x,
+                y: object.position.y,
+                z: object.position.z
+            }, 4000)
+            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+            .onUpdate(function() { // Called after tween.js updates 'coords'.
+                parent.controls.target.x = coords2.x;
+                parent.controls.target.y = coords2.y;
+                parent.controls.target.z = coords2.z;
+            })
+            .start(); // Start the tween immediately.
+
+        tween2.onComplete(function() {
+            console.log("complete2");
+        });
     }
 
     private findAllObjects(pred: THREE.Object3D[], parent: THREE.Object3D) {
@@ -342,7 +353,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     ngAfterViewInit() {
-        this.animate();
+        requestAnimationFrame( this.animate );
     }
     
     /* LIFECYCLE */
@@ -724,8 +735,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.scene.add( this.water );
     }
 
-    animate() {
+    animate(time) {
         requestAnimationFrame( this.animate );
+        TWEEN.update(time);
         this.render();
     }
 
@@ -800,8 +812,6 @@ export class SceneComponent implements OnInit, AfterViewInit {
             this.sunSphere.visible = true;
             uniforms.sunPosition.value.copy( this.sunSphere.position );
         }
-
-        TWEEN.update(this.clock.getDelta());
 
         this.renderer.render( this.scene, this.camera );
     }
