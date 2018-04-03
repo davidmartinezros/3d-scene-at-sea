@@ -101,13 +101,18 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     private createLights() {
         this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
-        this.light.position.set( - 30, 30, 30 );
+        this.light.position.set( - 1000, 1000, 1000 );
+        /*
         this.light.castShadow = true;
         this.light.shadow.camera.top = 45;
         this.light.shadow.camera.right = 40;
         this.light.shadow.camera.left = this.light.shadow.camera.bottom = -40;
         this.light.shadow.camera.near = 1;
         this.light.shadow.camera.far = 200;
+        */
+        this.light.castShadow = true;
+        this.light.shadow.camera.near = 1;
+        this.light.shadow.camera.far = 3000;
         this.scene.add( this.light );
 
         var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
@@ -141,19 +146,20 @@ export class SceneComponent implements OnInit, AfterViewInit {
     initParticlesClouds() {
         this.particleGroupClouds = new SPE.Group({
             texture: {
-                value: THREE.ImageUtils.loadTexture('assets/textures/cloud.png')
+                value: this.loaderTextures.load('assets/textures/cloud.png')
             },
             blending: THREE.NormalBlending,
-            fog: true
+            fog: true,
+            maxParticleCount: 3000
         });
         this.emitterClouds = new SPE.Emitter({
-            particleCount: 750,
+            particleCount: 1500,
             maxAge: {
                 value: 2,
             },
             position: {
                 value: new THREE.Vector3( 0, 400, 0 ),
-                spread: new THREE.Vector3( 2000, 300, 2000 )
+                spread: new THREE.Vector3( 4000, 300, 4000 )
             },
             velocity: {
                 value: new THREE.Vector3( 0, 0, 30 )
@@ -190,19 +196,20 @@ export class SceneComponent implements OnInit, AfterViewInit {
             texture: {
                 value: this.loaderTextures.load('assets/textures/smokeparticle.png')
             },
-            fog: true
+            fog: true,
+            maxParticleCount: 320000
         });
         this.emitterSnow = new SPE.Emitter({
             type: SPE.distributions.BOX,
             maxAge: 2,
             position: {
                 value: new THREE.Vector3(0, 0, 0),
-                spread: new THREE.Vector3( 1000, 300, 1000 )
+                spread: new THREE.Vector3( 4000, 300, 4000 )
             },
             velocity: {
                 value: new THREE.Vector3( 0, (-1.0)*this.getRandomNumber(30), 0 )
             },
-            particleCount: 40000,
+            particleCount: 160000,
             isStatic: false
         });
         this.particleGroupSnow.addEmitter( this.emitterSnow );
@@ -250,7 +257,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     private elementTrobat(i) {
-        if((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear")) {
+        if(((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear") || (i.name == "leopardo") || (i.name == "tiger"))
+        && i.position.x != this.controls.target.x && i.position.y != this.controls.target.y && i.position.z != this.controls.target.z) {
             
             this.ferTweenElement(i);
 
@@ -268,6 +276,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     private ferTweenElement(object) {
+
+        console.log(object.name);
 
         let parent = this;
         
@@ -373,6 +383,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.createWater();
         this.createTerrain();
         //this.loadIsland();
+        //this.createIsland2();
         //this.loadPalmTree();
         //this.loadTree();
 
@@ -382,6 +393,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.loadPenguin();
         //this.loadBear();
         this.loadPolarBear();
+        //this.loadLeopardo();
+        //this.loadTiger();
 
         // Init Snow and Clouds Particles
         this.initParticlesSnow();
@@ -420,6 +433,14 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     private createSky() {
+/*
+        var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+        light.position.x = -1000;
+        light.position.y = 10000;
+        light.position.z = -1000;
+        light.castShadow = true;
+        this.scene.add( light );
+*/
         // per fer el sol
         // https://github.com/mrdoob/three.js/blob/master/examples/webgl_shaders_sky.html
         //
@@ -427,11 +448,21 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.sky.scale.setScalar( 450000 );
         this.scene.add( this.sky );
 
+        var textureSun = this.loaderTextures.load('assets/textures/luna.jpg');
+        var materialSun = new THREE.MeshBasicMaterial({map: textureSun, needsUpdate: true});
         // Add Sun Helper
+        /*
         this.sunSphere = new THREE.Mesh(
             new THREE.SphereBufferGeometry( 20000, 16, 8 ),
             new THREE.MeshBasicMaterial( { color: 0xffffff } )
         );
+        */
+        this.sunSphere = new THREE.Mesh(
+            new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+            materialSun
+        );
+        this.sunSphere.castShadow = true;
+		this.sunSphere.receiveShadow = true;
         this.sunSphere.position.y = - 700000;
         this.sunSphere.visible = false;
         this.scene.add( this.sunSphere );
@@ -474,28 +505,51 @@ export class SceneComponent implements OnInit, AfterViewInit {
         var materialTerrain = new THREE.MeshLambertMaterial({map: textureTerrain, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
-        //loader.setPath( 'asssets/dolphin/' );
         loader3ds.load( 'assets/snow-terrain/SnowTerrain.3ds', function ( object ) {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
                     child.material = materialTerrain;
                 }
             } );
-
             let obj = object;
             obj.position.x = 150;
             obj.position.y = -110;
+            //obj.position.y = -70;
             obj.position.z = -1000;
             obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = Math.PI / 2;
+            obj.rotation.z = Math.PI / 2;            
+            //obj.rotation.x = - Math.PI / 2;
+            //obj.rotation.z = Math.PI / 2;
+            //obj.rotation.y = - Math.PI / 2;
+            obj.scale.x = 32;
+            obj.scale.y = 32;
+            obj.scale.z = 32;
+ 
+            parent.scene.add( obj );
+            //parent.scene.add(object);
+        }, parent.onProgress, parent.onError );
+    }
+/*
+    createIsland2() {
+        let parent = this;
+        var loaderObj = new THREE.TDSLoader( parent.manager );
+        loaderObj.setPath( 'assets/island2/' );
+        loaderObj.load( 'assets/island2/island.3ds', function ( object ) {
+            let obj = object;
+            obj.position.x = 150;
+            obj.position.y = -70;
+            obj.position.z = -1000;
+            //obj.rotation.x = - Math.PI / 2;
+            //obj.rotation.z = Math.PI / 2;
             //obj.rotation.y = - Math.PI / 2;
             obj.scale.x = 32;
             obj.scale.y = 32;
             obj.scale.z = 32;
 
             parent.scene.add( obj );
-        }, this.onProgress, this.onError );
+        }, parent.onProgress, parent.onError );
     }
+    */
     /*
     loadIsland() {
         var geometry = new THREE.CylinderGeometry( 50, 50, 10, 32 );
@@ -513,7 +567,6 @@ export class SceneComponent implements OnInit, AfterViewInit {
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
-        let obj;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
@@ -521,7 +574,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 }
             } );
 
-            obj = object.clone();
+            let obj = object.clone();
             obj.name = "dolphin";
             obj.rotation.x = - Math.PI / 2;
             obj.rotation.z = - Math.PI / 2;
@@ -547,9 +600,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.position.z = 30;
             parent.scene.add( obj );
 
-        }, this.onProgress, this.onError );
-
-        return obj;
+        }, parent.onProgress, parent.onError );
     }
 
     loadBirds() {
@@ -590,7 +641,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.position.z = -40;
             parent.scene.add( obj );
 
-        }, this.onProgress, this.onError );
+        }, parent.onProgress, parent.onError );
     }
     /*
     loadPalmTree() {
@@ -646,21 +697,83 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
     */
     loadPolarBear() {
-        var textureBear = this.loaderTextures.load('assets/Polar_Bear/texture.jpg');
-        var materialBear = new THREE.MeshLambertMaterial({map: textureBear, needsUpdate: true});
-        var loader = new THREE.STLLoader( this.manager );
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/Polar-Bear2/' );
         let parent = this;
-        loader.load( 'assets/Polar_Bear/polar_bear.stl', function ( geometry ) {
-            //var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
-            var mesh = new THREE.Mesh( geometry, materialBear );
-            mesh.name = "bear";
-            mesh.position.set( 60, 42, -210 );
-            mesh.rotation.set( 0, - Math.PI / 2, 0 );
-            mesh.scale.set( 0.6, 0.6, 0.6 );
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            parent.scene.add( mesh );
-        }, parent.onProgress, parent.onError );
+        mtlLoader.load( 'polar_bear.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/Polar-Bear2/' );
+            loaderObj.load( 'polar_bear.obj', function ( object ) {
+                let obj = object;
+                obj.name = "bear";
+                obj.position.x = - 250;
+                obj.position.z = - 230;
+                obj.position.y = 11;
+                //obj.rotation.y = - Math.PI;
+                obj.rotation.z = - Math.PI/20;
+                obj.scale.x = 0.5;
+                obj.scale.y = 0.5;
+                obj.scale.z = 0.5;
+                
+                parent.scene.add( obj );
+            }, parent.onProgress, parent.onError );
+        });
+    }
+
+    loadLeopardo() {
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/leopardo/' );
+        let parent = this;
+        mtlLoader.load( 'leopardo.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/leopardo/' );
+            loaderObj.load( 'leopardo.obj', function ( object ) {
+                let obj = object;
+                obj.name = "leopardo";
+                obj.position.x = 30;
+                obj.position.z = - 205;
+                obj.position.y = 30;
+                obj.rotation.y = - Math.PI;
+                obj.scale.x = 0.3;
+                obj.scale.y = 0.3;
+                obj.scale.z = 0.3;
+                
+                parent.scene.add( obj );
+            }, parent.onProgress, parent.onError );
+        });
+    }
+
+    loadTiger() {
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/tiger/' );
+        let parent = this;
+        mtlLoader.load( 'tiger.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/tiger/' );
+            loaderObj.load( 'tiger.obj', function ( objectTiger ) {
+                let objTiger = objectTiger;
+                objTiger.name = "tiger";
+                objTiger.position.x = - 350;
+                objTiger.position.y = 45;
+                objTiger.position.z = - 1170;
+                objTiger.rotation.y = 45* Math.PI / 180;
+                objTiger.scale.x = 0.5;
+                objTiger.scale.y = 0.5;
+                objTiger.scale.z = 0.5;
+                
+                parent.scene.add( objTiger );
+            }, parent.onProgress, parent.onError );
+        });
+
+        // per animar un objecte, aqui tinc un exemple de threejs.org
+        // https://threejs.org/examples/#webgl_animation_skinning_morph
+        // mirar si ho puc fer
     }
     /*
     loadTree() {
@@ -689,7 +802,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         var normalPenguin = this.loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
         var texturePenguin = this.loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
         var loaderObj = new THREE.OBJLoader( this.manager );
-        var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, normalMap: normalPenguin, needsUpdate: true});
+        var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, needsUpdate: true});
         let parent = this;              
         loaderObj.load( 'assets/penguin/Penguin.obj', function ( object ) {
             object.traverse( function ( child ) {
@@ -700,15 +813,33 @@ export class SceneComponent implements OnInit, AfterViewInit {
             
             let obj = object;
             obj.name = "penguin";
-            obj.position.x = - 183;
-            obj.position.z = - 205;
-            obj.position.y = 6;
-            obj.rotation.y = 90* Math.PI / 180;
+            obj.position.x = - 600;
+            obj.position.y = 13;
+            obj.position.z = - 1170;
+            obj.rotation.y = 45* Math.PI / 180;
             obj.scale.x = 0.3;
             obj.scale.y = 0.3;
             obj.scale.z = 0.3;
             
             parent.scene.add( obj );
+
+            obj = obj.clone();
+            obj.position.x = 800;
+            obj.position.y = 16;
+            obj.position.z = - 720;
+            obj.rotation.y = 65* Math.PI / 180;
+            parent.scene.add( obj );
+
+            obj = obj.clone();
+            obj.position.x = 820;
+            obj.position.y = 14;
+            obj.position.z = - 690;
+            obj.scale.x = 0.2;
+            obj.scale.y = 0.2;
+            obj.scale.z = 0.2;
+            obj.rotation.y = 15* Math.PI / 180;
+            parent.scene.add( obj );
+
         }, this.onProgress, this.onError );
     }
 
