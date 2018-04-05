@@ -102,25 +102,27 @@ export class SceneComponent implements OnInit, AfterViewInit {
     private createLights() {
         this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
         this.light.position.set( - 1000, 1000, 1000 );
-        /*
+        
         this.light.castShadow = true;
-        this.light.shadow.camera.top = 45;
-        this.light.shadow.camera.right = 40;
-        this.light.shadow.camera.left = this.light.shadow.camera.bottom = -40;
+        this.light.shadow.camera.visible = true;
+
+        this.light.shadow.camera.top = 200;
+        this.light.shadow.camera.right = 200;
+        this.light.shadow.camera.left = -200
+        this.light.shadow.camera.bottom = -200;
+
         this.light.shadow.camera.near = 1;
-        this.light.shadow.camera.far = 200;
-        */
-        this.light.castShadow = true;
-        this.light.shadow.camera.near = 1;
-        this.light.shadow.camera.far = 3000;
+        this.light.shadow.camera.far = 20000;
+
         this.scene.add( this.light );
 
         var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
+
         this.scene.add( ambientLight );
     }
 
     private createCamera() {
-        this.camera = new THREE.PerspectiveCamera( 55, (window.innerWidth - 6)/(window.innerHeight - 6), 1, 2000000 );
+        this.camera = new THREE.PerspectiveCamera( 55, window.innerWidth/window.innerHeight, 1, 2000000 );
         this.camera.position.set( 30, 30, 100 );
     }
 
@@ -130,16 +132,16 @@ export class SceneComponent implements OnInit, AfterViewInit {
             antialias: true
         });
         this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.renderer.setSize( window.innerWidth - 6, window.innerHeight - 6 );
+        this.renderer.setSize( window.innerWidth - 2, window.innerHeight - 6 );
         this.renderer.shadowMap.enabled = true;
     }
 
     private getAspectRatio(): number {
-        let height = window.innerHeight - 6;
+        let height = window.innerHeight;
         if (height === 0) {
             return 0;
         }
-        return (window.innerWidth - 6)/(window.innerHeight - 6);
+        return window.innerWidth/window.innerHeight;
     }
 
     // Creacio de nuvols
@@ -262,6 +264,10 @@ export class SceneComponent implements OnInit, AfterViewInit {
             
             this.ferTweenElement(i);
 
+            this.createBoundingBox(i);
+
+            this.createText(i.name, this.box.geometry.boundingSphere);
+
             this.render();
 
             //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
@@ -273,6 +279,14 @@ export class SceneComponent implements OnInit, AfterViewInit {
         } else {
             return false;
         }
+    }
+
+    box;
+
+    private createBoundingBox(object) {
+        this.scene.remove( this.box );
+        this.box = new THREE.BoxHelper( object, 0xffff00 );
+        this.scene.add( this.box );
     }
 
     private ferTweenElement(object) {
@@ -349,11 +363,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
     @HostListener('window:resize', ['$event'])
     public onResize(event: Event) {
 
-        console.log("onResize: " + (window.innerWidth - 6) + ", "  + (window.innerHeight - 6));
+        console.log("onResize: " + (window.innerWidth - 2) + ", "  + (window.innerHeight - 6));
 
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth - 6, window.innerHeight - 6);
+        this.renderer.setSize(window.innerWidth - 2, window.innerHeight - 6);
         this.render();
     }
 
@@ -509,6 +523,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
                     child.material = materialTerrain;
+                    child.receiveShadow = true;
                 }
             } );
             let obj = object;
@@ -524,6 +539,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.x = 32;
             obj.scale.y = 32;
             obj.scale.z = 32;
+
+            obj.receiveShadow = true;
  
             parent.scene.add( obj );
             //parent.scene.add(object);
@@ -582,6 +599,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.y = 16;
             obj.scale.z = 16;
 
+            obj.castShadow = true;
+
             obj = obj.clone();
             obj.position.x = 0;
             obj.position.y = 0;
@@ -593,7 +612,10 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.position.y = 10;
             obj.position.z = 15;
             parent.scene.add( obj );
-
+/*
+            parent.createBoundingBox(obj);
+            parent.createText(obj.name, parent.box.geometry.boundingSphere);
+*/
             obj = obj.clone();
             obj.position.x = -10;
             obj.position.y = 0;
@@ -622,6 +644,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.x = 1;
             obj.scale.y = 1;
             obj.scale.z = 1;
+
+            obj.castShadow = true;
 
             obj = obj.clone();
             obj.position.x = 50;
@@ -706,6 +730,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
             loaderObj.setMaterials( materials );
             loaderObj.setPath( 'assets/Polar-Bear2/' );
             loaderObj.load( 'polar_bear.obj', function ( object ) {
+                object.traverse( function( node ) {
+                    if ( node instanceof THREE.Mesh ) { 
+                        node.castShadow = true;
+                    } 
+                });
                 let obj = object;
                 obj.name = "bear";
                 obj.position.x = - 250;
@@ -717,6 +746,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 obj.scale.y = 0.5;
                 obj.scale.z = 0.5;
                 
+                obj.castShadow = true;
+
                 parent.scene.add( obj );
             }, parent.onProgress, parent.onError );
         });
@@ -741,6 +772,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 obj.scale.x = 0.3;
                 obj.scale.y = 0.3;
                 obj.scale.z = 0.3;
+
+                obj.castShadow = true;
                 
                 parent.scene.add( obj );
             }, parent.onProgress, parent.onError );
@@ -766,6 +799,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 objTiger.scale.x = 0.5;
                 objTiger.scale.y = 0.5;
                 objTiger.scale.z = 0.5;
+
+                objTiger.castShadow = true;
                 
                 parent.scene.add( objTiger );
             }, parent.onProgress, parent.onError );
@@ -775,6 +810,84 @@ export class SceneComponent implements OnInit, AfterViewInit {
         // https://threejs.org/examples/#webgl_animation_skinning_morph
         // mirar si ho puc fer
     }
+
+    text = "three.js";
+    height = 5;
+    size = 5;
+    hover = 0;
+    curveSegments = 4;
+    bevelThickness = 0.1;
+    bevelSize = 0.5;
+    bevelSegments = 1;
+    bevelEnabled = true;
+    font = undefined;
+    fontName = "optimer"; // helvetiker, optimer, gentilis, droid sans, droid serif
+    fontWeight = "regular"; // normal bold
+
+    materials = [
+        new THREE.MeshPhongMaterial( { color: 0x264d24, flatShading: true } ), // front
+        new THREE.MeshPhongMaterial( { color: 0x569c53 } ) // side
+    ];
+
+    textMesh1;
+
+    createText(text, boundingSphere) {
+        if ( !text ) return;
+        if(this.box) {
+            let parent = this;
+            var loader = new THREE.FontLoader();
+            loader.load( 'assets/fonts/' + parent.fontName + '_' + parent.fontWeight + '.typeface.json', function ( response ) {
+                debugger;
+                parent.font = response;
+
+                let textGeo = new THREE.TextGeometry( text, 
+                {
+                    font: parent.font,
+                    size: parent.size,
+                    height: parent.height,
+                    curveSegments: parent.curveSegments,
+                    bevelThickness: parent.bevelThickness,
+                    bevelSize: parent.bevelSize,
+                    bevelEnabled: parent.bevelEnabled
+                });
+                textGeo.computeBoundingBox();
+                textGeo.computeVertexNormals();
+                // "fix" side normals by removing z-component of normals for side faces
+                // (this doesn't work well for beveled geometry as then we lose nice curvature around z-axis)
+                if ( ! parent.bevelEnabled ) {
+                    var triangleAreaHeuristics = 0.1 * ( parent.height * parent.size );
+                    for ( var i = 0; i < textGeo.faces.length; i ++ ) {
+                        var face = textGeo.faces[ i ];
+                        if ( face.materialIndex == 1 ) {
+                            for ( var j = 0; j < face.vertexNormals.length; j ++ ) {
+                                face.vertexNormals[ j ].z = 0;
+                                face.vertexNormals[ j ].normalize();
+                            }
+                            var va = textGeo.vertices[ face.a ];
+                            var vb = textGeo.vertices[ face.b ];
+                            var vc = textGeo.vertices[ face.c ];
+                            var s = THREE.GeometryUtils.triangleArea( va, vb, vc );
+                            if ( s > triangleAreaHeuristics ) {
+                                for ( var j = 0; j < face.vertexNormals.length; j ++ ) {
+                                    face.vertexNormals[ j ].copy( face.normal );
+                                }
+                            }
+                        }
+                    }
+                }
+                var centerOffset = -0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+                parent.scene.remove( parent.textMesh1 );
+                parent.textMesh1 = new THREE.Mesh( textGeo, parent.materials );
+                parent.textMesh1.position.x = boundingSphere.center.x + centerOffset;
+                parent.textMesh1.position.y = boundingSphere.center.y + boundingSphere.radius + parent.hover;
+                parent.textMesh1.position.z = boundingSphere.center.z;
+                parent.textMesh1.rotation.x = 0;
+                parent.textMesh1.rotation.y = Math.PI * 2;
+                parent.scene.add( parent.textMesh1 );
+            } );
+        }
+    }
+
     /*
     loadTree() {
 
