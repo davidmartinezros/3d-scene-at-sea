@@ -101,21 +101,28 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
     private createLights() {
         this.light = new THREE.DirectionalLight( 0xffffff, 0.8 );
-        this.light.position.set( - 30, 30, 30 );
+        this.light.position.set( - 1000, 1000, 1000 );
+        
         this.light.castShadow = true;
-        this.light.shadow.camera.top = 45;
-        this.light.shadow.camera.right = 40;
-        this.light.shadow.camera.left = this.light.shadow.camera.bottom = -40;
+        this.light.shadow.camera.visible = true;
+
+        this.light.shadow.camera.top = 200;
+        this.light.shadow.camera.right = 200;
+        this.light.shadow.camera.left = -200
+        this.light.shadow.camera.bottom = -200;
+
         this.light.shadow.camera.near = 1;
-        this.light.shadow.camera.far = 200;
+        this.light.shadow.camera.far = 20000;
+
         this.scene.add( this.light );
 
         var ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
+
         this.scene.add( ambientLight );
     }
 
     private createCamera() {
-        this.camera = new THREE.PerspectiveCamera( 55, (window.innerWidth - 16)/(window.innerHeight - 16), 1, 2000000 );
+        this.camera = new THREE.PerspectiveCamera( 55, window.innerWidth/window.innerHeight, 1, 2000000 );
         this.camera.position.set( 30, 30, 100 );
     }
 
@@ -125,35 +132,36 @@ export class SceneComponent implements OnInit, AfterViewInit {
             antialias: true
         });
         this.renderer.setPixelRatio( window.devicePixelRatio );
-        this.renderer.setSize( window.innerWidth - 16, window.innerHeight - 16 );
+        this.renderer.setSize( window.innerWidth - 2, window.innerHeight - 6 );
         this.renderer.shadowMap.enabled = true;
     }
 
     private getAspectRatio(): number {
-        let height = window.innerHeight - 16;
+        let height = window.innerHeight;
         if (height === 0) {
             return 0;
         }
-        return (window.innerWidth - 16)/(window.innerHeight - 16);
+        return window.innerWidth/window.innerHeight;
     }
 
     // Creacio de nuvols
     initParticlesClouds() {
         this.particleGroupClouds = new SPE.Group({
             texture: {
-                value: THREE.ImageUtils.loadTexture('assets/textures/cloud.png')
+                value: this.loaderTextures.load('assets/textures/cloud.png')
             },
             blending: THREE.NormalBlending,
-            fog: true
+            fog: true,
+            maxParticleCount: 3000
         });
         this.emitterClouds = new SPE.Emitter({
-            particleCount: 750,
+            particleCount: 1500,
             maxAge: {
                 value: 2,
             },
             position: {
                 value: new THREE.Vector3( 0, 400, 0 ),
-                spread: new THREE.Vector3( 2000, 300, 2000 )
+                spread: new THREE.Vector3( 4000, 300, 4000 )
             },
             velocity: {
                 value: new THREE.Vector3( 0, 0, 30 )
@@ -190,19 +198,20 @@ export class SceneComponent implements OnInit, AfterViewInit {
             texture: {
                 value: this.loaderTextures.load('assets/textures/smokeparticle.png')
             },
-            fog: true
+            fog: true,
+            maxParticleCount: 320000
         });
         this.emitterSnow = new SPE.Emitter({
             type: SPE.distributions.BOX,
             maxAge: 2,
             position: {
                 value: new THREE.Vector3(0, 0, 0),
-                spread: new THREE.Vector3( 1000, 300, 1000 )
+                spread: new THREE.Vector3( 4000, 300, 4000 )
             },
             velocity: {
                 value: new THREE.Vector3( 0, (-1.0)*this.getRandomNumber(30), 0 )
             },
-            particleCount: 40000,
+            particleCount: 160000,
             isStatic: false
         });
         this.particleGroupSnow.addEmitter( this.emitterSnow );
@@ -233,10 +242,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
         console.log("Scene has " + obj.length + " objects");
         console.log(intersects.length + " intersected objects found")
         let trobat = false;
+        let parent = this;
         intersects.forEach((i) => {
             console.log(i.object); // do what you want to do with object
             //i.object.position.y = i.object.position.y + 1;
-            if(elementTrobat.bind(this)(i.object)) {
+            if(parent.elementTrobat(i.object)) {
                 trobat = true;
             }
             if(trobat) {
@@ -246,68 +256,93 @@ export class SceneComponent implements OnInit, AfterViewInit {
             }
                  
         });
+    }
 
-        function elementTrobat(i) {
-            if((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear")) {
-                //this.camera.lookAt( i.position );
-                //this.camera.position.set(i.position.x + 100, i.position.y + 50, i.position.z + 100);
-                
-                //console.log(this.controls);
-                //console.log(this.camera);
-                
-                var lookAtVector = new THREE.Vector3(0, 0, 1);
-                lookAtVector.applyQuaternion(i.quaternion);
-                console.log(lookAtVector);
-                
-                var rotateTween = new TWEEN.Tween(this.controls.target)
-                    .to({
-                        x: i.position.x,
-                        y: i.position.y,
-                        z: i.position.z
-                    }, 4000)
-                    .interpolation(TWEEN.Interpolation.CatmullRom)
-                    .easing(TWEEN.Easing.Quintic.InOut)
-                    .start();
+    private elementTrobat(i) {
+        if(((i.name == "dolphin") || (i.name == "bird") || (i.name == "penguin") || (i.name == "bear") || (i.name == "leopardo") || (i.name == "tiger"))
+        && i.position.x != this.controls.target.x && i.position.y != this.controls.target.y && i.position.z != this.controls.target.z) {
+            
+            this.ferTweenElement(i);
 
-                var goTween = new TWEEN.Tween(this.camera.position)
-                    .to({
-                        x: i.position.x + 30,
-                        y: i.position.y + 30,
-                        z: i.position.z + 100
-                    }, 4000)
-                    .interpolation(TWEEN.Interpolation.CatmullRom)
-                    .easing(TWEEN.Easing.Quintic.InOut);
+            this.createBoundingBox(i);
 
-                console.log(goTween)
-                goTween.start();
-                goTween.onComplete(function() {
-                    console.log('done!');
-                });
+            this.createText(i.name, this.box.geometry.boundingSphere);
 
-                this.controls.target.set( 
-                    i.position.x,
-                    i.position.y,
-                    i.position.z );
+            this.render();
 
-                this.camera.position.set(
-                    i.position.x + 30,
-                    i.position.y + 30,
-                    i.position.z + 100 );
+            //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
 
-                this.camera.lookAt( i.position );
-
-                this.render();
-
-                //if(i.material)  i.material.color = new THREE.Color(0xf2b640);
-
-                //if(i.material)  i.material.color = null;
-                return true;
-            } else if(i.parent && i.parent != null) {
-                return elementTrobat.bind(this)(i.parent);
-            } else {
-                return false;
-            }
+            //if(i.material)  i.material.color = null;
+            return true;
+        } else if(i.parent && i.parent != null) {
+            return this.elementTrobat(i.parent);
+        } else {
+            return false;
         }
+    }
+
+    box;
+
+    private createBoundingBox(object) {
+        this.scene.remove( this.box );
+        this.box = new THREE.BoxHelper( object, 0xffff00 );
+        this.scene.add( this.box );
+    }
+
+    private ferTweenElement(object) {
+
+        console.log(object.name);
+
+        let parent = this;
+        
+        var coords1 = {
+            x: this.camera.position.x,
+            y: this.camera.position.y,
+            z: this.camera.position.z
+        };
+        
+        var tween1 = new TWEEN.Tween(coords1) // Create a new tween that modifies 'coords1'.
+            .to({
+                x: object.position.x + 30,
+                y: object.position.y + 30,
+                z: object.position.z + 100
+            }, 4000)
+            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+            .onUpdate(function() { // Called after tween.js updates 'coords'.
+                parent.camera.position.x = coords1.x;
+                parent.camera.position.y = coords1.y;
+                parent.camera.position.z = coords1.z;
+                parent.camera.lookAt(object.position);
+            })
+            .start(); // Start the tween immediately.
+
+        tween1.onComplete(function() {
+            console.log("complete1");
+        });
+
+        var coords2 = {
+            x: this.controls.target.x,
+            y: this.controls.target.y,
+            z: this.controls.target.z
+        };
+
+        var tween2 = new TWEEN.Tween(coords2) // Create a new tween that modifies 'coords2'.
+            .to({
+                x: object.position.x,
+                y: object.position.y,
+                z: object.position.z
+            }, 4000)
+            .easing(TWEEN.Easing.Quadratic.Out) // Use an easing function to make the animation smooth.
+            .onUpdate(function() { // Called after tween.js updates 'coords'.
+                parent.controls.target.x = coords2.x;
+                parent.controls.target.y = coords2.y;
+                parent.controls.target.z = coords2.z;
+            })
+            .start(); // Start the tween immediately.
+
+        tween2.onComplete(function() {
+            console.log("complete2");
+        });
     }
 
     private findAllObjects(pred: THREE.Object3D[], parent: THREE.Object3D) {
@@ -328,11 +363,11 @@ export class SceneComponent implements OnInit, AfterViewInit {
     @HostListener('window:resize', ['$event'])
     public onResize(event: Event) {
 
-        console.log("onResize: " + (window.innerWidth - 16) + ", "  + (window.innerHeight - 16));
+        console.log("onResize: " + (window.innerWidth - 2) + ", "  + (window.innerHeight - 6));
 
         this.camera.aspect = this.getAspectRatio();
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth - 16, window.innerHeight - 16);
+        this.renderer.setSize(window.innerWidth - 2, window.innerHeight - 6);
         this.render();
     }
 
@@ -342,7 +377,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     ngAfterViewInit() {
-        this.animate();
+        requestAnimationFrame( this.animate );
     }
     
     /* LIFECYCLE */
@@ -355,13 +390,14 @@ export class SceneComponent implements OnInit, AfterViewInit {
 
         // Init Options
         this.initOptionsEvents();
-        this.initOptionsParameters();
+        //this.initOptionsParameters();
 
         // Create Scene
         this.createSky();
         this.createWater();
         this.createTerrain();
         //this.loadIsland();
+        //this.createIsland2();
         //this.loadPalmTree();
         //this.loadTree();
 
@@ -371,6 +407,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.loadPenguin();
         //this.loadBear();
         this.loadPolarBear();
+        //this.loadLeopardo();
+        //this.loadTiger();
 
         // Init Snow and Clouds Particles
         this.initParticlesSnow();
@@ -409,6 +447,14 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
 
     private createSky() {
+/*
+        var light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
+        light.position.x = -1000;
+        light.position.y = 10000;
+        light.position.z = -1000;
+        light.castShadow = true;
+        this.scene.add( light );
+*/
         // per fer el sol
         // https://github.com/mrdoob/three.js/blob/master/examples/webgl_shaders_sky.html
         //
@@ -416,11 +462,21 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.sky.scale.setScalar( 450000 );
         this.scene.add( this.sky );
 
+        var textureSun = this.loaderTextures.load('assets/textures/luna.jpg');
+        var materialSun = new THREE.MeshBasicMaterial({map: textureSun, needsUpdate: true});
         // Add Sun Helper
+        /*
         this.sunSphere = new THREE.Mesh(
             new THREE.SphereBufferGeometry( 20000, 16, 8 ),
             new THREE.MeshBasicMaterial( { color: 0xffffff } )
         );
+        */
+        this.sunSphere = new THREE.Mesh(
+            new THREE.SphereBufferGeometry( 20000, 16, 8 ),
+            materialSun
+        );
+        this.sunSphere.castShadow = true;
+		this.sunSphere.receiveShadow = true;
         this.sunSphere.position.y = - 700000;
         this.sunSphere.visible = false;
         this.scene.add( this.sunSphere );
@@ -463,28 +519,54 @@ export class SceneComponent implements OnInit, AfterViewInit {
         var materialTerrain = new THREE.MeshLambertMaterial({map: textureTerrain, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
-        //loader.setPath( 'asssets/dolphin/' );
         loader3ds.load( 'assets/snow-terrain/SnowTerrain.3ds', function ( object ) {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
                     child.material = materialTerrain;
+                    child.receiveShadow = true;
                 }
             } );
-
             let obj = object;
             obj.position.x = 150;
             obj.position.y = -110;
+            //obj.position.y = -70;
             obj.position.z = -1000;
             obj.rotation.x = - Math.PI / 2;
-            obj.rotation.z = Math.PI / 2;
+            obj.rotation.z = Math.PI / 2;            
+            //obj.rotation.x = - Math.PI / 2;
+            //obj.rotation.z = Math.PI / 2;
+            //obj.rotation.y = - Math.PI / 2;
+            obj.scale.x = 32;
+            obj.scale.y = 32;
+            obj.scale.z = 32;
+
+            obj.receiveShadow = true;
+ 
+            parent.scene.add( obj );
+            //parent.scene.add(object);
+        }, parent.onProgress, parent.onError );
+    }
+/*
+    createIsland2() {
+        let parent = this;
+        var loaderObj = new THREE.TDSLoader( parent.manager );
+        loaderObj.setPath( 'assets/island2/' );
+        loaderObj.load( 'assets/island2/island.3ds', function ( object ) {
+            let obj = object;
+            obj.position.x = 150;
+            obj.position.y = -70;
+            obj.position.z = -1000;
+            //obj.rotation.x = - Math.PI / 2;
+            //obj.rotation.z = Math.PI / 2;
             //obj.rotation.y = - Math.PI / 2;
             obj.scale.x = 32;
             obj.scale.y = 32;
             obj.scale.z = 32;
 
             parent.scene.add( obj );
-        }, this.onProgress, this.onError );
+        }, parent.onProgress, parent.onError );
     }
+    */
     /*
     loadIsland() {
         var geometry = new THREE.CylinderGeometry( 50, 50, 10, 32 );
@@ -502,7 +584,6 @@ export class SceneComponent implements OnInit, AfterViewInit {
         var materialDolphin = new THREE.MeshLambertMaterial({map: textureDolphin, needsUpdate: true});
         var loader3ds = new THREE.TDSLoader( this.manager );
         let parent = this;
-        let obj;
         loader3ds.load( 'assets/dolphin/DOLPHIN.3DS', function ( object ) {
             object.traverse( function ( child ) {
                 if ( child instanceof THREE.Mesh ) {
@@ -510,13 +591,15 @@ export class SceneComponent implements OnInit, AfterViewInit {
                 }
             } );
 
-            obj = object.clone();
+            let obj = object.clone();
             obj.name = "dolphin";
             obj.rotation.x = - Math.PI / 2;
             obj.rotation.z = - Math.PI / 2;
             obj.scale.x = 16;
             obj.scale.y = 16;
             obj.scale.z = 16;
+
+            obj.castShadow = true;
 
             obj = obj.clone();
             obj.position.x = 0;
@@ -529,16 +612,17 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.position.y = 10;
             obj.position.z = 15;
             parent.scene.add( obj );
-
+/*
+            parent.createBoundingBox(obj);
+            parent.createText(obj.name, parent.box.geometry.boundingSphere);
+*/
             obj = obj.clone();
             obj.position.x = -10;
             obj.position.y = 0;
             obj.position.z = 30;
             parent.scene.add( obj );
 
-        }, this.onProgress, this.onError );
-
-        return obj;
+        }, parent.onProgress, parent.onError );
     }
 
     loadBirds() {
@@ -561,6 +645,8 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.scale.y = 1;
             obj.scale.z = 1;
 
+            obj.castShadow = true;
+
             obj = obj.clone();
             obj.position.x = 50;
             obj.position.y = 50;
@@ -579,7 +665,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
             obj.position.z = -40;
             parent.scene.add( obj );
 
-        }, this.onProgress, this.onError );
+        }, parent.onProgress, parent.onError );
     }
     /*
     loadPalmTree() {
@@ -635,22 +721,173 @@ export class SceneComponent implements OnInit, AfterViewInit {
     }
     */
     loadPolarBear() {
-        var textureBear = this.loaderTextures.load('assets/Polar_Bear/texture.jpg');
-        var materialBear = new THREE.MeshLambertMaterial({map: textureBear, needsUpdate: true});
-        var loader = new THREE.STLLoader( this.manager );
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/Polar-Bear2/' );
         let parent = this;
-        loader.load( 'assets/Polar_Bear/polar_bear.stl', function ( geometry ) {
-            //var material = new THREE.MeshPhongMaterial( { color: 0xff5533, specular: 0x111111, shininess: 200 } );
-            var mesh = new THREE.Mesh( geometry, materialBear );
-            mesh.name = "bear";
-            mesh.position.set( 60, 42, -210 );
-            mesh.rotation.set( 0, - Math.PI / 2, 0 );
-            mesh.scale.set( 0.6, 0.6, 0.6 );
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            parent.scene.add( mesh );
-        }, parent.onProgress, parent.onError );
+        mtlLoader.load( 'polar_bear.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/Polar-Bear2/' );
+            loaderObj.load( 'polar_bear.obj', function ( object ) {
+                object.traverse( function( node ) {
+                    if ( node instanceof THREE.Mesh ) { 
+                        node.castShadow = true;
+                    } 
+                });
+                let obj = object;
+                obj.name = "bear";
+                obj.position.x = - 250;
+                obj.position.z = - 230;
+                obj.position.y = 11;
+                //obj.rotation.y = - Math.PI;
+                obj.rotation.z = - Math.PI/20;
+                obj.scale.x = 0.5;
+                obj.scale.y = 0.5;
+                obj.scale.z = 0.5;
+                
+                obj.castShadow = true;
+
+                parent.scene.add( obj );
+            }, parent.onProgress, parent.onError );
+        });
     }
+
+    loadLeopardo() {
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/leopardo/' );
+        let parent = this;
+        mtlLoader.load( 'leopardo.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/leopardo/' );
+            loaderObj.load( 'leopardo.obj', function ( object ) {
+                let obj = object;
+                obj.name = "leopardo";
+                obj.position.x = 30;
+                obj.position.z = - 205;
+                obj.position.y = 30;
+                obj.rotation.y = - Math.PI;
+                obj.scale.x = 0.3;
+                obj.scale.y = 0.3;
+                obj.scale.z = 0.3;
+
+                obj.castShadow = true;
+                
+                parent.scene.add( obj );
+            }, parent.onProgress, parent.onError );
+        });
+    }
+
+    loadTiger() {
+        var mtlLoader = new THREE.MTLLoader();
+        mtlLoader.setPath( 'assets/tiger/' );
+        let parent = this;
+        mtlLoader.load( 'tiger.mtl', function( materials ) {
+            materials.preload();
+            var loaderObj = new THREE.OBJLoader( parent.manager );
+            loaderObj.setMaterials( materials );
+            loaderObj.setPath( 'assets/tiger/' );
+            loaderObj.load( 'tiger.obj', function ( objectTiger ) {
+                let objTiger = objectTiger;
+                objTiger.name = "tiger";
+                objTiger.position.x = - 350;
+                objTiger.position.y = 45;
+                objTiger.position.z = - 1170;
+                objTiger.rotation.y = 45* Math.PI / 180;
+                objTiger.scale.x = 0.5;
+                objTiger.scale.y = 0.5;
+                objTiger.scale.z = 0.5;
+
+                objTiger.castShadow = true;
+                
+                parent.scene.add( objTiger );
+            }, parent.onProgress, parent.onError );
+        });
+
+        // per animar un objecte, aqui tinc un exemple de threejs.org
+        // https://threejs.org/examples/#webgl_animation_skinning_morph
+        // mirar si ho puc fer
+    }
+
+    text = "three.js";
+    height = 5;
+    size = 5;
+    hover = 0;
+    curveSegments = 4;
+    bevelThickness = 0.1;
+    bevelSize = 0.5;
+    bevelSegments = 1;
+    bevelEnabled = true;
+    font = undefined;
+    fontName = "optimer"; // helvetiker, optimer, gentilis, droid sans, droid serif
+    fontWeight = "regular"; // normal bold
+
+    materials = [
+        new THREE.MeshPhongMaterial( { color: 0x264d24, flatShading: true } ), // front
+        new THREE.MeshPhongMaterial( { color: 0x569c53 } ) // side
+    ];
+
+    textMesh1;
+
+    createText(text, boundingSphere) {
+        if ( !text ) return;
+        if(this.box) {
+            let parent = this;
+            var loader = new THREE.FontLoader();
+            loader.load( 'assets/fonts/' + parent.fontName + '_' + parent.fontWeight + '.typeface.json', function ( response ) {
+                debugger;
+                parent.font = response;
+
+                let textGeo = new THREE.TextGeometry( text, 
+                {
+                    font: parent.font,
+                    size: parent.size,
+                    height: parent.height,
+                    curveSegments: parent.curveSegments,
+                    bevelThickness: parent.bevelThickness,
+                    bevelSize: parent.bevelSize,
+                    bevelEnabled: parent.bevelEnabled
+                });
+                textGeo.computeBoundingBox();
+                textGeo.computeVertexNormals();
+                // "fix" side normals by removing z-component of normals for side faces
+                // (this doesn't work well for beveled geometry as then we lose nice curvature around z-axis)
+                if ( ! parent.bevelEnabled ) {
+                    var triangleAreaHeuristics = 0.1 * ( parent.height * parent.size );
+                    for ( var i = 0; i < textGeo.faces.length; i ++ ) {
+                        var face = textGeo.faces[ i ];
+                        if ( face.materialIndex == 1 ) {
+                            for ( var j = 0; j < face.vertexNormals.length; j ++ ) {
+                                face.vertexNormals[ j ].z = 0;
+                                face.vertexNormals[ j ].normalize();
+                            }
+                            var va = textGeo.vertices[ face.a ];
+                            var vb = textGeo.vertices[ face.b ];
+                            var vc = textGeo.vertices[ face.c ];
+                            var s = THREE.GeometryUtils.triangleArea( va, vb, vc );
+                            if ( s > triangleAreaHeuristics ) {
+                                for ( var j = 0; j < face.vertexNormals.length; j ++ ) {
+                                    face.vertexNormals[ j ].copy( face.normal );
+                                }
+                            }
+                        }
+                    }
+                }
+                var centerOffset = -0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+                parent.scene.remove( parent.textMesh1 );
+                parent.textMesh1 = new THREE.Mesh( textGeo, parent.materials );
+                parent.textMesh1.position.x = boundingSphere.center.x + centerOffset;
+                parent.textMesh1.position.y = boundingSphere.center.y + boundingSphere.radius + parent.hover;
+                parent.textMesh1.position.z = boundingSphere.center.z;
+                parent.textMesh1.rotation.x = 0;
+                parent.textMesh1.rotation.y = Math.PI * 2;
+                parent.scene.add( parent.textMesh1 );
+            } );
+        }
+    }
+
     /*
     loadTree() {
 
@@ -678,7 +915,7 @@ export class SceneComponent implements OnInit, AfterViewInit {
         var normalPenguin = this.loaderTextures.load( 'assets/penguin/TPenguin_Normal.png' );
         var texturePenguin = this.loaderTextures.load('assets/penguin/TPenguin_Diffuse.png');
         var loaderObj = new THREE.OBJLoader( this.manager );
-        var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, normalMap: normalPenguin, needsUpdate: true});
+        var materialPenguin = new THREE.MeshLambertMaterial({map: texturePenguin, needsUpdate: true});
         let parent = this;              
         loaderObj.load( 'assets/penguin/Penguin.obj', function ( object ) {
             object.traverse( function ( child ) {
@@ -689,15 +926,33 @@ export class SceneComponent implements OnInit, AfterViewInit {
             
             let obj = object;
             obj.name = "penguin";
-            obj.position.x = - 183;
-            obj.position.z = - 205;
-            obj.position.y = 6;
-            obj.rotation.y = 90* Math.PI / 180;
+            obj.position.x = - 600;
+            obj.position.y = 13;
+            obj.position.z = - 1170;
+            obj.rotation.y = 45* Math.PI / 180;
             obj.scale.x = 0.3;
             obj.scale.y = 0.3;
             obj.scale.z = 0.3;
             
             parent.scene.add( obj );
+
+            obj = obj.clone();
+            obj.position.x = 800;
+            obj.position.y = 16;
+            obj.position.z = - 720;
+            obj.rotation.y = 65* Math.PI / 180;
+            parent.scene.add( obj );
+
+            obj = obj.clone();
+            obj.position.x = 820;
+            obj.position.y = 14;
+            obj.position.z = - 690;
+            obj.scale.x = 0.2;
+            obj.scale.y = 0.2;
+            obj.scale.z = 0.2;
+            obj.rotation.y = 15* Math.PI / 180;
+            parent.scene.add( obj );
+
         }, this.onProgress, this.onError );
     }
 
@@ -724,8 +979,9 @@ export class SceneComponent implements OnInit, AfterViewInit {
         this.scene.add( this.water );
     }
 
-    animate() {
+    animate(time) {
         requestAnimationFrame( this.animate );
+        TWEEN.update(time);
         this.render();
     }
 
@@ -800,8 +1056,6 @@ export class SceneComponent implements OnInit, AfterViewInit {
             this.sunSphere.visible = true;
             uniforms.sunPosition.value.copy( this.sunSphere.position );
         }
-
-        TWEEN.update(this.clock.getDelta());
 
         this.renderer.render( this.scene, this.camera );
     }
